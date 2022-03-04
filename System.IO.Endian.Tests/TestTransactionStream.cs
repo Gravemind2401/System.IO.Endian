@@ -531,7 +531,6 @@ namespace System.IO.Endian.Tests
             var tran = new TransactionStream(ms);
 
             var reader = new EndianReader(tran);
-            var writer = new EndianWriter(tran);
 
             Assert.AreEqual(byte.MaxValue, tran.Length);
 

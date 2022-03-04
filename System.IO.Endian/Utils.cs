@@ -180,8 +180,7 @@ namespace System.IO.Endian
         {
             var type = typeof(TSource);
 
-            var member = expr.Body as MemberExpression;
-            if (member == null)
+            if (!(expr.Body is MemberExpression member))
                 throw new ArgumentException("Expression does not refer to a property");
 
             var propInfo = member.Member as PropertyInfo;
