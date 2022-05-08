@@ -133,10 +133,7 @@ namespace System.IO.Endian
         /// <exception cref="EndOfStreamException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override float ReadSingle()
-        {
-            return ReadSingle(ByteOrder);
-        }
+        public override float ReadSingle() => ReadSingle(ByteOrder);
 
         /// <summary>
         /// Reads an 8-byte floating point value from the current stream using the current byte order 
@@ -146,10 +143,7 @@ namespace System.IO.Endian
         /// <exception cref="EndOfStreamException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override double ReadDouble()
-        {
-            return ReadDouble(ByteOrder);
-        }
+        public override double ReadDouble() => ReadDouble(ByteOrder);
 
         /// <summary>
         /// Reads a decimal value from the current stream using the current byte order 
@@ -159,10 +153,7 @@ namespace System.IO.Endian
         /// <exception cref="EndOfStreamException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override decimal ReadDecimal()
-        {
-            return ReadDecimal(ByteOrder);
-        }
+        public override decimal ReadDecimal() => ReadDecimal(ByteOrder);
 
         /// <summary>
         /// Reads a 2-byte signed integer from the current stream using the current byte order 
@@ -172,10 +163,7 @@ namespace System.IO.Endian
         /// <exception cref="EndOfStreamException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override short ReadInt16()
-        {
-            return ReadInt16(ByteOrder);
-        }
+        public override short ReadInt16() => ReadInt16(ByteOrder);
 
         /// <summary>
         /// Reads a 4-byte signed integer from the current stream using the current byte order 
@@ -185,10 +173,7 @@ namespace System.IO.Endian
         /// <exception cref="EndOfStreamException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override int ReadInt32()
-        {
-            return ReadInt32(ByteOrder);
-        }
+        public override int ReadInt32() => ReadInt32(ByteOrder);
 
         /// <summary>
         /// Reads an 8-byte signed integer from the current stream using the current byte order 
@@ -198,10 +183,7 @@ namespace System.IO.Endian
         /// <exception cref="EndOfStreamException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override long ReadInt64()
-        {
-            return ReadInt64(ByteOrder);
-        }
+        public override long ReadInt64() => ReadInt64(ByteOrder);
 
         /// <summary>
         /// Reads a 2-byte unsigned integer from the current stream using the current byte order 
@@ -212,10 +194,7 @@ namespace System.IO.Endian
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
         [CLSCompliant(false)]
-        public override ushort ReadUInt16()
-        {
-            return ReadUInt16(ByteOrder);
-        }
+        public override ushort ReadUInt16() => ReadUInt16(ByteOrder);
 
         /// <summary>
         /// Reads a 4-byte unsigned integer from the current stream using the current byte order
@@ -226,10 +205,7 @@ namespace System.IO.Endian
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
         [CLSCompliant(false)]
-        public override uint ReadUInt32()
-        {
-            return ReadUInt32(ByteOrder);
-        }
+        public override uint ReadUInt32() => ReadUInt32(ByteOrder);
 
         /// <summary>
         /// Reads an 8-byte unsigned integer from the current stream using the current byte order
@@ -240,10 +216,7 @@ namespace System.IO.Endian
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
         [CLSCompliant(false)]
-        public override ulong ReadUInt64()
-        {
-            return ReadUInt64(ByteOrder);
-        }
+        public override ulong ReadUInt64() => ReadUInt64(ByteOrder);
 
         /// <summary>
         /// Reads a length-prefixed string from the current stream using the current byte order
@@ -252,10 +225,7 @@ namespace System.IO.Endian
         /// <exception cref="ArgumentOutOfRangeException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override string ReadString()
-        {
-            return ReadString(ByteOrder);
-        }
+        public override string ReadString() => ReadString(ByteOrder);
 
         /// <summary>
         /// Reads a globally unique identifier from the current stream using the current byte order
@@ -264,10 +234,7 @@ namespace System.IO.Endian
         /// <exception cref="ArgumentOutOfRangeException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public virtual Guid ReadGuid()
-        {
-            return ReadGuid(ByteOrder);
-        }
+        public virtual Guid ReadGuid() => ReadGuid(ByteOrder);
 
         #endregion
 
@@ -496,8 +463,8 @@ namespace System.IO.Endian
             if (length == 0)
                 return string.Empty;
 
-            if (trim) return encoding.GetString(ReadBytes(length)).TrimEnd();
-            else return encoding.GetString(ReadBytes(length));
+            var result = encoding.GetString(ReadBytes(length));
+            return trim ? result.TrimEnd() : result;
         }
 
         /// <summary>
@@ -555,10 +522,7 @@ namespace System.IO.Endian
         /// <exception cref="EndOfStreamException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public virtual float PeekSingle()
-        {
-            return PeekSingle(ByteOrder);
-        }
+        public virtual float PeekSingle() => PeekSingle(ByteOrder);
 
         /// <summary>
         /// Reads an 8-byte floating point value from the current stream using the current byte order 
@@ -568,10 +532,7 @@ namespace System.IO.Endian
         /// <exception cref="EndOfStreamException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public virtual double PeekDouble()
-        {
-            return PeekDouble(ByteOrder);
-        }
+        public virtual double PeekDouble() => PeekDouble(ByteOrder);
 
         /// <summary>
         /// Reads a decimal value from the current stream using the current byte order 
@@ -581,10 +542,7 @@ namespace System.IO.Endian
         /// <exception cref="EndOfStreamException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public virtual decimal PeekDecimal()
-        {
-            return PeekDecimal(ByteOrder);
-        }
+        public virtual decimal PeekDecimal() => PeekDecimal(ByteOrder);
 
         /// <summary>
         /// Reads a 2-byte signed integer from the current stream using the current byte order 
@@ -594,10 +552,7 @@ namespace System.IO.Endian
         /// <exception cref="EndOfStreamException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public virtual short PeekInt16()
-        {
-            return PeekInt16(ByteOrder);
-        }
+        public virtual short PeekInt16() => PeekInt16(ByteOrder);
 
         /// <summary>
         /// Reads a 4-byte signed integer from the current stream using the current byte order 
@@ -607,10 +562,7 @@ namespace System.IO.Endian
         /// <exception cref="EndOfStreamException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public virtual int PeekInt32()
-        {
-            return PeekInt32(ByteOrder);
-        }
+        public virtual int PeekInt32() => PeekInt32(ByteOrder);
 
         /// <summary>
         /// Reads an 8-byte signed integer from the current stream using the current byte order 
@@ -620,10 +572,7 @@ namespace System.IO.Endian
         /// <exception cref="EndOfStreamException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public virtual long PeekInt64()
-        {
-            return PeekInt64(ByteOrder);
-        }
+        public virtual long PeekInt64() => PeekInt64(ByteOrder);
 
         /// <summary>
         /// Reads a 2-byte unsigned integer from the current stream using the current byte order 
@@ -634,10 +583,7 @@ namespace System.IO.Endian
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
         [CLSCompliant(false)]
-        public virtual ushort PeekUInt16()
-        {
-            return PeekUInt16(ByteOrder);
-        }
+        public virtual ushort PeekUInt16() => PeekUInt16(ByteOrder);
 
         /// <summary>
         /// Reads a 4-byte unsigned integer from the current stream using the current byte order
@@ -648,10 +594,7 @@ namespace System.IO.Endian
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
         [CLSCompliant(false)]
-        public virtual uint PeekUInt32()
-        {
-            return PeekUInt32(ByteOrder);
-        }
+        public virtual uint PeekUInt32() => PeekUInt32(ByteOrder);
 
         /// <summary>
         /// Reads an 8-byte unsigned integer from the current stream using the current byte order
@@ -662,10 +605,7 @@ namespace System.IO.Endian
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
         [CLSCompliant(false)]
-        public virtual ulong PeekUInt64()
-        {
-            return PeekUInt64(ByteOrder);
-        }
+        public virtual ulong PeekUInt64() => PeekUInt64(ByteOrder);
 
         /// <summary>
         /// Reads a globally unique identifier from the current stream using the specified byte order
@@ -674,10 +614,7 @@ namespace System.IO.Endian
         /// <exception cref="EndOfStreamException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public virtual Guid PeekGuid()
-        {
-            return PeekGuid(ByteOrder);
-        }
+        public virtual Guid PeekGuid() => PeekGuid(ByteOrder);
 
         #endregion
 
@@ -888,10 +825,7 @@ namespace System.IO.Endian
         /// with the same byte order and encoding that will treat the current position
         /// as the beginning of the stream and will not dispose of the underlying stream when it is closed.
         /// </summary>
-        public virtual EndianReader CreateVirtualReader()
-        {
-            return CreateVirtualReader(BaseStream.Position);
-        }
+        public virtual EndianReader CreateVirtualReader() => CreateVirtualReader(BaseStream.Position);
 
         /// <summary>
         /// Creates an <seealso cref="EndianReader"/> based on the same stream 

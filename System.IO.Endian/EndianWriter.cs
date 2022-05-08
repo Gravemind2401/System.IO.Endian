@@ -135,10 +135,7 @@ namespace System.IO.Endian
         /// <param name="value">The four-byte floating-point value to write.</param>
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override void Write(float value)
-        {
-            Write(value, ByteOrder);
-        }
+        public override void Write(float value) => Write(value, ByteOrder);
 
         /// <summary>
         /// Writes an eight-byte floating-point value to the current stream using the current byte order
@@ -147,10 +144,7 @@ namespace System.IO.Endian
         /// <param name="value">The eight-byte floating-point value to write.</param>
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override void Write(double value)
-        {
-            Write(value, ByteOrder);
-        }
+        public override void Write(double value) => Write(value, ByteOrder);
 
         /// <summary>
         /// Writes a decimal value to the current stream using the current byte order
@@ -159,10 +153,7 @@ namespace System.IO.Endian
         /// <param name="value">The decimal value to write.</param>
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override void Write(decimal value)
-        {
-            Write(value, ByteOrder);
-        }
+        public override void Write(decimal value) => Write(value, ByteOrder);
 
         /// <summary>
         /// Writes a two-byte signed integer to the current stream using the current byte order
@@ -171,10 +162,7 @@ namespace System.IO.Endian
         /// <param name="value">The two-byte signed integer to write.</param>
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override void Write(short value)
-        {
-            Write(value, ByteOrder);
-        }
+        public override void Write(short value) => Write(value, ByteOrder);
 
         /// <summary>
         /// Writes a four-byte signed integer to the current stream using the current byte order
@@ -183,10 +171,7 @@ namespace System.IO.Endian
         /// <param name="value">The four-byte signed integer to write.</param>
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override void Write(int value)
-        {
-            Write(value, ByteOrder);
-        }
+        public override void Write(int value) => Write(value, ByteOrder);
 
         /// <summary>
         /// Writes an eight-byte signed integer to the current stream using the current byte order
@@ -195,10 +180,7 @@ namespace System.IO.Endian
         /// <param name="value">The eight-byte signed integer to write.</param>
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override void Write(long value)
-        {
-            Write(value, ByteOrder);
-        }
+        public override void Write(long value) => Write(value, ByteOrder);
 
         /// <summary>
         /// Writes a two-byte unsigned integer to the current stream using the current byte order
@@ -208,10 +190,7 @@ namespace System.IO.Endian
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
         [CLSCompliant(false)]
-        public override void Write(ushort value)
-        {
-            Write(value, ByteOrder);
-        }
+        public override void Write(ushort value) => Write(value, ByteOrder);
 
         /// <summary>
         /// Writes a four-byte unsigned integer to the current stream using the current byte order
@@ -221,10 +200,7 @@ namespace System.IO.Endian
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
         [CLSCompliant(false)]
-        public override void Write(uint value)
-        {
-            Write(value, ByteOrder);
-        }
+        public override void Write(uint value) => Write(value, ByteOrder);
 
         /// <summary>
         /// Writes an eight-byte unsigned integer to the current stream using the current byte order
@@ -234,10 +210,7 @@ namespace System.IO.Endian
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
         [CLSCompliant(false)]
-        public override void Write(ulong value)
-        {
-            Write(value, ByteOrder);
-        }
+        public override void Write(ulong value) => Write(value, ByteOrder);
 
         /// <summary>
         /// Writes a length-prefixed string to the current stream using the current byte order
@@ -247,10 +220,7 @@ namespace System.IO.Endian
         /// <exception cref="ArgumentNullException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public override void Write(string value)
-        {
-            Write(value, ByteOrder);
-        }
+        public override void Write(string value) => Write(value, ByteOrder);
 
         /// <summary>
         /// Writes a globally unique identifier to the current stream using the current byte order
@@ -259,10 +229,7 @@ namespace System.IO.Endian
         /// <param name="value">The string value to write.</param>
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public virtual void Write(Guid value)
-        {
-            Write(value, ByteOrder);
-        }
+        public virtual void Write(Guid value) => Write(value, ByteOrder);
 
         #endregion
 
@@ -326,7 +293,7 @@ namespace System.IO.Endian
                 return;
             }
 
-            var bits = Decimal.GetBits(value);
+            var bits = decimal.GetBits(value);
             var bytes = new byte[16];
 
             for (int i = 0; i < 4; i++)
@@ -512,10 +479,7 @@ namespace System.IO.Endian
         /// <exception cref="ArgumentNullException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public virtual void WriteStringFixedLength(string value)
-        {
-            WriteStringFixedLength(value, value.Length);
-        }
+        public virtual void WriteStringFixedLength(string value) => WriteStringFixedLength(value, value.Length);
 
         /// <summary>
         /// Writes a fixed-length string to the current stream using the current encoding of the <seealso cref="EndianWriter"/>.
@@ -527,10 +491,7 @@ namespace System.IO.Endian
         /// <exception cref="ArgumentNullException" />
         /// <exception cref="IOException" />
         /// <exception cref="ObjectDisposedException" />
-        public virtual void WriteStringFixedLength(string value, int length)
-        {
-            WriteStringFixedLength(value, length, ' ');
-        }
+        public virtual void WriteStringFixedLength(string value, int length) => WriteStringFixedLength(value, length, ' ');
 
         /// <summary>
         /// Writes a fixed-length string to the current stream using the current encoding of the <seealso cref="EndianWriter"/>.
@@ -551,11 +512,13 @@ namespace System.IO.Endian
             if (length < 0)
                 throw Exceptions.ParamMustBeNonNegative(nameof(length), length);
 
-            if (length == 0) return;
+            if (length == 0)
+                return;
 
             if (value.Length > length)
                 value = value.Substring(0, length);
-            else while (value.Length < length)
+            else
+                while (value.Length < length)
                     value += padding;
 
             base.Write(encoding.GetBytes(value));
@@ -618,10 +581,7 @@ namespace System.IO.Endian
         /// with the same byte order and encoding that will treat the current position
         /// as the beginning of the stream and will not dispose of the underlying stream when it is closed.
         /// </summary>
-        public virtual EndianWriter CreateVirtualWriter()
-        {
-            return CreateVirtualWriter(BaseStream.Position);
-        }
+        public virtual EndianWriter CreateVirtualWriter() => CreateVirtualWriter(BaseStream.Position);
 
         /// <summary>
         /// Creates an <seealso cref="EndianWriter"/> based on the same stream 
