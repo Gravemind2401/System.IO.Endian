@@ -297,6 +297,7 @@ namespace System.IO.Endian
             var primitiveMethod = (from m in typeof(EndianReader).GetMethods()
                                    where m.Name.StartsWith(nameof(Read), StringComparison.Ordinal)
                                    && !m.Name.Equals(nameof(Read), StringComparison.Ordinal)
+                                   && !m.Name.StartsWith(nameof(Read7BitEncodedInt), StringComparison.Ordinal)
                                    && m.ReturnType.Equals(type)
                                    && m.GetParameters().Length == 0
                                    select m).SingleOrDefault();

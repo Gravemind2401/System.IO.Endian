@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.SymbolStore;
+//using System.Diagnostics.SymbolStore;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -43,6 +43,7 @@ namespace System.IO.Endian
 
         public static void DumpAssembly(double? version)
         {
+            /*
             if (!DynamicReader.DebugMode || !Debugger.IsAttached)
                 return;
 
@@ -63,6 +64,7 @@ namespace System.IO.Endian
                 asmBuilder.Save(fileName);
             }
             catch { }
+            */
         }
 
         private static DynamicRead GenerateReadMethod(double? version)
@@ -386,6 +388,7 @@ namespace System.IO.Endian
             var primitiveMethod = (from m in typeof(EndianReader).GetMethods()
                                    where m.Name.StartsWith(nameof(EndianReader.Read), StringComparison.Ordinal)
                                    && !m.Name.Equals(nameof(EndianReader.Read), StringComparison.Ordinal)
+                                   && !m.Name.StartsWith(nameof(EndianReader.Read7BitEncodedInt), StringComparison.Ordinal)
                                    && m.ReturnType.Equals(type)
                                    let args = m.GetParameters()
                                    where type.Equals(typeof(byte)) || type.Equals(typeof(sbyte))
