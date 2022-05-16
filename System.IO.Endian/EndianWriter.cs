@@ -538,8 +538,10 @@ namespace System.IO.Endian
             if (value.Length > length)
                 value = value.Substring(0, length);
             else
+            {
                 while (value.Length < length)
                     value += padding;
+            }
 
             base.Write(encoding.GetBytes(value));
         }
@@ -705,7 +707,7 @@ namespace System.IO.Endian
 
             if (pad != default(byte))
             {
-                for (int i = 0; i < length; i++)
+                for (var i = 0; i < length; i++)
                     buffer[i] = pad;
             }
 
