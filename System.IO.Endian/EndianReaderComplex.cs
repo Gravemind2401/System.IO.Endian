@@ -17,7 +17,7 @@ namespace System.IO.Endian
 
         public static void SetDebugMode(bool enabled) => DynamicReader.SetDebugMode(enabled);
 
-        public bool DynamicReadEnabled { get; set; }
+        public bool DynamicReadEnabled { get; set; } = true;
 
         #region ReadObject Overloads
 
