@@ -156,7 +156,6 @@ namespace System.IO.Endian
         /// must have at least the <seealso cref="OffsetAttribute"/> attribute applied.
         /// The object returned is the same instance that was supplied as the parameter.
         /// </summary>
-        /// <param name="type">The type of object to read.</param>
         /// <exception cref="AmbiguousMatchException" />
         /// <exception cref="ArgumentException" />
         /// <exception cref="ArgumentNullException" />

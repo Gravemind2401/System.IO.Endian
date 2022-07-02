@@ -58,7 +58,7 @@ namespace System.IO.Endian.Dynamic
             StoreTypeAttributes = prop.GetCustomAttributes<StoreTypeAttribute>().ToList();
         }
 
-        public void GetValue(object instance) => GetMethod.Invoke(instance, Type.EmptyTypes);
+        public object GetValue(object instance) => GetMethod.Invoke(instance, Type.EmptyTypes);
         public void SetValue(object instance, object value) => SetMethod.Invoke(instance, new object[] { value });
 
         public bool Validate()

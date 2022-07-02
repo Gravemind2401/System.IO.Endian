@@ -9,7 +9,7 @@ namespace System.IO.Endian
     /// <summary>
     /// Reads primitive and complex data types from a stream in a specific byte order and encoding.
     /// </summary>
-    public partial class EndianReader : BinaryReader
+    public partial class EndianReader : BinaryReader, IEndianStream
     {
         private readonly long virtualOrigin;
         private readonly Encoding encoding;
@@ -805,6 +805,13 @@ namespace System.IO.Endian
         #endregion
 
         #region Other
+
+        /// <summary>
+        /// Gets the position of the base stream.
+        /// If the current instance was created using <see cref="CreateVirtualReader"/>
+        /// the position returned will be relative to the virtual origin.
+        /// </summary>
+        public long Position => BaseStream.Position - virtualOrigin;
 
         /// <summary>
         /// Sets the position of the underlying stream relative to a given origin.
