@@ -384,7 +384,7 @@ namespace System.IO.Endian
     }
 
     /// <summary>
-    /// Specifies that a string property is stored as fixed-length.
+    /// Specifies that a string is stored as fixed-length.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
     public sealed class FixedLengthAttribute : Attribute
@@ -453,6 +453,15 @@ namespace System.IO.Endian
     /// </summary>
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
     public sealed class LengthPrefixedAttribute : Attribute
+    {
+
+    }
+
+    /// <summary>
+    /// Specifies that <see cref="string.Intern(string)"/> should be used when reading a string value.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property, Inherited = false)]
+    public sealed class InternedAttribute : Attribute
     {
 
     }
