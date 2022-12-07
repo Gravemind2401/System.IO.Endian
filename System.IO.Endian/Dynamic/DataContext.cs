@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace System.IO.Endian.Dynamic
 {
+    [DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
     internal class DataContext
     {
         public object Target { get; }
@@ -155,6 +153,6 @@ namespace System.IO.Endian.Dynamic
                 Writer.WriteObject(storageType);
         }
 
-        public override string ToString() => $"{Target.GetType().Name} v{Version?.ToString() ?? "NULL"} @ {Origin}";
+        private string GetDebuggerDisplay() => $"{Target.GetType().Name} v{Version?.ToString() ?? "NULL"} @ {Origin}";
     }
 }
