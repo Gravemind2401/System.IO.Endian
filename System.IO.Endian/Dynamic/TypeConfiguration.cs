@@ -20,8 +20,8 @@ namespace System.IO.Endian.Dynamic
         {
             targetType = type;
 
-            FixedSizeAttributes = type.GetCustomAttributes<FixedSizeAttribute>().ToList();
-            ByteOrderAttributes = type.GetCustomAttributes<ByteOrderAttribute>().ToList();
+            FixedSizeAttributes = type.GetCustomAttributes<FixedSizeAttribute>().ToList().AsReadOnly();
+            ByteOrderAttributes = type.GetCustomAttributes<ByteOrderAttribute>().ToList().AsReadOnly();
 
             if (!FixedSizeAttributes.ValidateOverlap())
                 throw new InvalidOperationException();
@@ -39,7 +39,7 @@ namespace System.IO.Endian.Dynamic
                 properties.Remove(versionProperty);
         }
 
-        private static TypeConfiguration ForType(Type type)
+        public static TypeConfiguration GetConfiguration(Type type)
         {
             if (!instances.ContainsKey(type))
                 instances.Add(type, new TypeConfiguration(type));
@@ -49,8 +49,8 @@ namespace System.IO.Endian.Dynamic
         private IEnumerable<PropertyConfiguration> GetValidProperties(DataContext context)
         {
             return from prop in properties
-                   let offsetAttr = prop.OffsetAttributes.FirstOrDefault(context.ValidateVersion)
-                   where context.ValidateVersion(prop)
+                   let offsetAttr = prop.OffsetAttributes.GetVersion(context.Version)
+                   where prop.ValidateVersion(context.Version)
                    && (prop.VersionSpecificAttribute == null || prop.VersionSpecificAttribute.Version == context.Version)
                    && offsetAttr != null
                    orderby offsetAttr.Offset
@@ -65,7 +65,7 @@ namespace System.IO.Endian.Dynamic
             if (MethodCache.ReadMethods.ContainsKey(type))
                 return MethodCache.ReadMethods[type].Invoke(reader, reader.ByteOrder);
 
-            return TypeConfiguration.ForType(type).PopulateInternal(obj, reader, version);
+            return GetConfiguration(type).PopulateInternal(obj, reader, version);
         }
 
         private object PopulateInternal(object obj, EndianReader reader, double? version)
@@ -75,13 +75,13 @@ namespace System.IO.Endian.Dynamic
             if (versionProperty != null)
                 context.ReadValue(versionProperty);
 
-            if (!context.Version.HasValue && FixedSizeAttributes.AllNotEmpty(Extensions.IsVersioned))
+            if (!context.Version.HasValue && !FixedSizeAttributes.SupportsNullVersion())
                 throw new InvalidOperationException();
 
             foreach (var property in GetValidProperties(context))
                 context.ReadValue(property);
 
-            var fixedSize = FixedSizeAttributes.FirstOrDefault(context.ValidateVersion)?.Size ?? context.DataLength;
+            var fixedSize = FixedSizeAttributes.GetVersion(context.Version)?.Size ?? context.DataLength;
             if (fixedSize.HasValue)
                 context.SeekOffset(fixedSize.Value);
 
@@ -97,12 +97,12 @@ namespace System.IO.Endian.Dynamic
             if (MethodCache.WriteMethods.ContainsKey(type))
                 MethodCache.WriteMethods[type].Invoke(writer, writer.ByteOrder, obj);
             else
-                TypeConfiguration.ForType(type).WriteInternal(obj, writer, version);
+                GetConfiguration(type).WriteInternal(obj, writer, version);
         }
 
         private void WriteInternal(object obj, EndianWriter writer, double? version)
         {
-            if (!version.HasValue && FixedSizeAttributes.AllNotEmpty(Extensions.IsVersioned))
+            if (!version.HasValue && !FixedSizeAttributes.SupportsNullVersion())
                 throw new InvalidOperationException();
 
             var context = new DataContext(this, obj, version, writer);
@@ -122,7 +122,7 @@ namespace System.IO.Endian.Dynamic
             foreach (var property in GetValidProperties(context))
                 context.WriteValue(property);
 
-            var fixedSize = FixedSizeAttributes.FirstOrDefault(context.ValidateVersion)?.Size ?? context.DataLength;
+            var fixedSize = FixedSizeAttributes.GetVersion(context.Version)?.Size ?? context.DataLength;
             if (fixedSize.HasValue)
                 context.SeekOffset(fixedSize.Value);
         }

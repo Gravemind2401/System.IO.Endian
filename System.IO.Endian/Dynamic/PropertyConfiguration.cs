@@ -36,10 +36,10 @@ namespace System.IO.Endian.Dynamic
             get
             {
                 return !IsVersionBound
-                    && !DataLengthAttributes.AllNotEmpty(Extensions.IsVersioned)
-                    && !OffsetAttributes.AllNotEmpty(Extensions.IsVersioned)
-                    && !ByteOrderAttributes.AllNotEmpty(Extensions.IsVersioned)
-                    && !StoreTypeAttributes.AllNotEmpty(Extensions.IsVersioned);
+                    && DataLengthAttributes.SupportsNullVersion()
+                    && OffsetAttributes.SupportsNullVersion()
+                    && ByteOrderAttributes.SupportsNullVersion()
+                    && StoreTypeAttributes.SupportsNullVersion();
             }
         }
 
@@ -93,6 +93,8 @@ namespace System.IO.Endian.Dynamic
 
             return true;
         }
+
+        public bool ValidateVersion(double? version) => Extensions.ValidateVersion(version, MinVersionAttribute?.MinVersion, MaxVersionAttribute?.MaxVersion);
 
         private string GetDebuggerDisplay() => $"{Property.DeclaringType.Name}.{Property.Name}";
     }

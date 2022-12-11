@@ -22,7 +22,7 @@ namespace System.IO.Endian.Dynamic
             Origin = stream.Position;
             Stream = stream;
             Version = version;
-            ByteOrder = manager.ByteOrderAttributes.FirstOrDefault(ValidateVersion)?.ByteOrder ?? stream.ByteOrder;
+            ByteOrder = manager.ByteOrderAttributes.GetVersion(Version)?.ByteOrder ?? stream.ByteOrder;
         }
 
         public DataContext(TypeConfiguration manager, object instance, double? version, EndianReader reader)
@@ -37,16 +37,9 @@ namespace System.IO.Endian.Dynamic
             Writer = writer;
         }
 
-        public bool ValidateVersion(PropertyConfiguration property) => ValidateVersion(Version, property.MinVersionAttribute?.MinVersion, property.MaxVersionAttribute?.MaxVersion);
-        public bool ValidateVersion(IVersionAttribute attr) => ValidateVersion(Version, attr.HasMinVersion ? attr.MinVersion : null, attr.HasMaxVersion ? attr.MaxVersion : null);
-        private static bool ValidateVersion(double? version, double? min, double? max)
-        {
-            return (version >= min || !min.HasValue) && (version < max || !max.HasValue || max == min);
-        }
-
         private Type GetStorageType(PropertyConfiguration prop)
         {
-            var storageType = prop.StoreTypeAttributes.FirstOrDefault(ValidateVersion)?.StoreType ?? prop.PropertyType;
+            var storageType = prop.StoreTypeAttributes.GetVersion(Version)?.StoreType ?? prop.PropertyType;
 
             if (storageType.IsGenericType && storageType.GetGenericTypeDefinition() == typeof(Nullable<>))
                 storageType = storageType.GetGenericArguments()[0];
@@ -61,10 +54,10 @@ namespace System.IO.Endian.Dynamic
 
         public void ReadValue(PropertyConfiguration prop)
         {
-            var offset = prop.OffsetAttributes.FirstOrDefault(ValidateVersion)?.Offset ?? throw new InvalidOperationException();
+            var offset = prop.OffsetAttributes.GetVersion(Version)?.Offset ?? throw new InvalidOperationException();
             SeekOffset(offset);
 
-            var byteOrder = prop.ByteOrderAttributes.FirstOrDefault(ValidateVersion)?.ByteOrder ?? ByteOrder;
+            var byteOrder = prop.ByteOrderAttributes.GetVersion(Version)?.ByteOrder ?? ByteOrder;
             var storageType = GetStorageType(prop);
             var value = ReadValue(prop, storageType, byteOrder);
 
@@ -74,7 +67,7 @@ namespace System.IO.Endian.Dynamic
             if (prop.IsVersionNumber && !Version.HasValue && value != null)
                 Version = Convert.ToDouble(value);
 
-            if (prop.DataLengthAttributes.Any(ValidateVersion) && value != null)
+            if (prop.DataLengthAttributes.HasVersion(Version) && value != null)
                 DataLength = Convert.ToInt64(value);
 
             prop.SetValue(Target, value);
@@ -106,10 +99,10 @@ namespace System.IO.Endian.Dynamic
 
         public void WriteValue(PropertyConfiguration prop)
         {
-            var offset = prop.OffsetAttributes.FirstOrDefault(ValidateVersion)?.Offset ?? throw new InvalidOperationException();
+            var offset = prop.OffsetAttributes.GetVersion(Version)?.Offset ?? throw new InvalidOperationException();
             SeekOffset(offset);
 
-            var byteOrder = prop.ByteOrderAttributes.FirstOrDefault(ValidateVersion)?.ByteOrder ?? ByteOrder;
+            var byteOrder = prop.ByteOrderAttributes.GetVersion(Version)?.ByteOrder ?? ByteOrder;
             var storageType = GetStorageType(prop);
             var value = prop.GetValue(Target);
 
@@ -129,7 +122,7 @@ namespace System.IO.Endian.Dynamic
             //for nullable types write the default value
             WriteValue(prop, storageType, byteOrder, value ?? Activator.CreateInstance(storageType));
 
-            if (value != null && prop.DataLengthAttributes.Any(ValidateVersion))
+            if (value != null && prop.DataLengthAttributes.HasVersion(Version))
                 DataLength = Convert.ToInt64(value);
         }
 

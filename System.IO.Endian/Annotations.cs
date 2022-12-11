@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.IO.Endian.Dynamic;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace System.IO.Endian
 {
@@ -14,6 +11,8 @@ namespace System.IO.Endian
         double MaxVersion { get; }
         bool HasMinVersion { get; }
         bool HasMaxVersion { get; }
+
+        sealed bool IsVersioned => HasMinVersion || HasMaxVersion;
     }
 
     /// <summary>
@@ -94,7 +93,11 @@ namespace System.IO.Endian
         /// </summary>
         /// <param name="type">The type to check.</param>
         /// <param name="version">The version to check.</param>
-        public static long ValueFor(Type type, double? version) => Utils.GetAttributeForVersion<FixedSizeAttribute>(type, version).Size;
+        public static long ValueFor(Type type, double? version)
+        {
+            return TypeConfiguration.GetConfiguration(type).FixedSizeAttributes
+                .GetVersion(version).Size;
+        }
     }
 
     /// <summary>
@@ -241,8 +244,8 @@ namespace System.IO.Endian
         /// <param name="version">The version to check.</param>
         public static long ValueFor(PropertyInfo prop, double? version)
         {
-            var attr = Utils.GetAttributeForVersion<OffsetAttribute>(prop, version);
-            return attr.Offset;
+            return prop.GetCustomAttributes<OffsetAttribute>()
+                .GetVersion(version).Offset;
         }
     }
 
