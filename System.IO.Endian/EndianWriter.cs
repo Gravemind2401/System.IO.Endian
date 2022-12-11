@@ -2,9 +2,7 @@
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO.Endian.Dynamic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace System.IO.Endian
 {
@@ -13,8 +11,16 @@ namespace System.IO.Endian
     /// </summary>
     public class EndianWriter : BinaryWriter, IEndianStream
     {
+        private static readonly ByteOrder NativeByteOrder = BitConverter.IsLittleEndian ? ByteOrder.LittleEndian : ByteOrder.BigEndian;
+
         private readonly long virtualOrigin;
         private readonly Encoding encoding;
+
+        /// <summary>
+        /// Returns <see langword="true"/> if the current value of the <see cref="ByteOrder"/> property
+        /// matches the byte order of the system's architecture.
+        /// </summary>
+        protected bool IsNativeByteOrder => ByteOrder == NativeByteOrder;
 
         /// <summary>
         /// Gets or sets the endianness used when writing to the stream.
@@ -211,7 +217,7 @@ namespace System.IO.Endian
         /// <inheritdoc cref="Write(int, ByteOrder)"/>
         public virtual void Write(Half value, ByteOrder byteOrder)
         {
-            if (byteOrder == ByteOrder.LittleEndian)
+            if (byteOrder == NativeByteOrder)
             {
                 base.Write(value);
                 return;
@@ -230,7 +236,7 @@ namespace System.IO.Endian
         /// <inheritdoc cref="Write(int, ByteOrder)"/>
         public virtual void Write(float value, ByteOrder byteOrder)
         {
-            if (byteOrder == ByteOrder.LittleEndian)
+            if (byteOrder == NativeByteOrder)
             {
                 base.Write(value);
                 return;
@@ -249,7 +255,7 @@ namespace System.IO.Endian
         /// <inheritdoc cref="Write(int, ByteOrder)"/>
         public virtual void Write(double value, ByteOrder byteOrder)
         {
-            if (byteOrder == ByteOrder.LittleEndian)
+            if (byteOrder == NativeByteOrder)
             {
                 base.Write(value);
                 return;
@@ -268,7 +274,7 @@ namespace System.IO.Endian
         /// <inheritdoc cref="Write(int, ByteOrder)"/>
         public virtual void Write(decimal value, ByteOrder byteOrder)
         {
-            if (byteOrder == ByteOrder.LittleEndian)
+            if (byteOrder == NativeByteOrder)
             {
                 base.Write(value);
                 return;
@@ -290,7 +296,7 @@ namespace System.IO.Endian
         /// </summary>
         /// <inheritdoc cref="BinaryWriter.Write(short)"/>
         /// <inheritdoc cref="Write(int, ByteOrder)"/>
-        public virtual void Write(short value, ByteOrder byteOrder) => base.Write(byteOrder == ByteOrder.LittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
+        public virtual void Write(short value, ByteOrder byteOrder) => base.Write(byteOrder == NativeByteOrder ? value : BinaryPrimitives.ReverseEndianness(value));
 
         /// <summary>
         /// Writes a four-byte signed integer to the current stream using the specified byte order
@@ -298,7 +304,7 @@ namespace System.IO.Endian
         /// </summary>
         /// <param name="byteOrder">The byte order to use.</param>
         /// <inheritdoc cref="BinaryWriter.Write(int)"/>
-        public virtual void Write(int value, ByteOrder byteOrder) => base.Write(byteOrder == ByteOrder.LittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
+        public virtual void Write(int value, ByteOrder byteOrder) => base.Write(byteOrder == NativeByteOrder ? value : BinaryPrimitives.ReverseEndianness(value));
 
         /// <summary>
         /// Writes an eight-byte signed integer to the current stream using the specified byte order
@@ -306,7 +312,7 @@ namespace System.IO.Endian
         /// </summary>
         /// <inheritdoc cref="BinaryWriter.Write(long)"/>
         /// <inheritdoc cref="Write(int, ByteOrder)"/>
-        public virtual void Write(long value, ByteOrder byteOrder) => base.Write(byteOrder == ByteOrder.LittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
+        public virtual void Write(long value, ByteOrder byteOrder) => base.Write(byteOrder == NativeByteOrder ? value : BinaryPrimitives.ReverseEndianness(value));
 
         /// <summary>
         /// Writes a two-byte unsigned integer to the current stream using the specified byte order
@@ -314,7 +320,7 @@ namespace System.IO.Endian
         /// </summary>
         /// <inheritdoc cref="BinaryWriter.Write(ushort)"/>
         /// <inheritdoc cref="Write(int, ByteOrder)"/>
-        public virtual void Write(ushort value, ByteOrder byteOrder) => base.Write(byteOrder == ByteOrder.LittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
+        public virtual void Write(ushort value, ByteOrder byteOrder) => base.Write(byteOrder == NativeByteOrder ? value : BinaryPrimitives.ReverseEndianness(value));
 
         /// <summary>
         /// Writes a four-byte unsigned integer to the current stream using the specified byte order
@@ -322,7 +328,7 @@ namespace System.IO.Endian
         /// </summary>
         /// <inheritdoc cref="BinaryWriter.Write(uint)"/>
         /// <inheritdoc cref="Write(int, ByteOrder)"/>
-        public virtual void Write(uint value, ByteOrder byteOrder) => base.Write(byteOrder == ByteOrder.LittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
+        public virtual void Write(uint value, ByteOrder byteOrder) => base.Write(byteOrder == NativeByteOrder ? value : BinaryPrimitives.ReverseEndianness(value));
 
         /// <summary>
         /// Writes an eight-byte unsigned integer to the current stream using the specified byte order
@@ -330,7 +336,7 @@ namespace System.IO.Endian
         /// </summary>
         /// <inheritdoc cref="BinaryWriter.Write(ulong)"/>
         /// <inheritdoc cref="Write(int, ByteOrder)"/>
-        public virtual void Write(ulong value, ByteOrder byteOrder) => base.Write(byteOrder == ByteOrder.LittleEndian ? value : BinaryPrimitives.ReverseEndianness(value));
+        public virtual void Write(ulong value, ByteOrder byteOrder) => base.Write(byteOrder == NativeByteOrder ? value : BinaryPrimitives.ReverseEndianness(value));
 
         /// <summary>
         /// Writes a globally unique identifier to the current stream using the specified byte order
@@ -344,12 +350,11 @@ namespace System.IO.Endian
             var a = BitConverter.ToInt32(bytes, 0);
             var b = BitConverter.ToInt16(bytes, 4);
             var c = BitConverter.ToInt16(bytes, 6);
-            var d = bytes.Skip(8).ToArray();
 
             Write(a, byteOrder);
             Write(b, byteOrder);
             Write(c, byteOrder);
-            Write(d);
+            Write(bytes.AsSpan().Slice(8));
         }
 
         #endregion
