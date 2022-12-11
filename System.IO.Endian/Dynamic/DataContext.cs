@@ -89,8 +89,8 @@ namespace System.IO.Endian.Dynamic
                 }
             }
 
-            if (MethodCache.ReadMethods.ContainsKey(storageType))
-                return MethodCache.ReadMethods[storageType].Invoke(Reader, byteOrder);
+            if (MethodCache.TryGetReadMethod(storageType, out var readMethod))
+                return readMethod(Reader, byteOrder);
 
             return Version.HasValue
                 ? Reader.ReadObject(storageType, Version.Value)
@@ -142,8 +142,8 @@ namespace System.IO.Endian.Dynamic
                     Writer.WriteStringNullTerminated(stringValue);
                 }
             }
-            else if (MethodCache.WriteMethods.ContainsKey(storageType))
-                MethodCache.WriteMethods[storageType].Invoke(Writer, byteOrder, value);
+            else if (MethodCache.TryGetWriteMethod(storageType, out var writeMethod))
+                writeMethod(Writer, byteOrder, value);
             else if (Version.HasValue)
                 Writer.WriteObject(value, Version.Value);
             else

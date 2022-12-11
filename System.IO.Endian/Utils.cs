@@ -62,5 +62,11 @@ namespace System.IO.Endian
 
             return propInfo;
         }
+
+        public static void ReverseEndianness(Span<byte> span, int packSize)
+        {
+            for (var i = 0; i < span.Length; i += packSize)
+                span.Slice(i, packSize).Reverse();
+        }
     }
 }
