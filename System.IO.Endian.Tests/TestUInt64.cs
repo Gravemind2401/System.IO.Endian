@@ -1,8 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.IO;
-
-namespace System.IO.Endian.Tests
+﻿namespace System.IO.Endian.Tests
 {
     [TestClass]
     public class TestUInt64

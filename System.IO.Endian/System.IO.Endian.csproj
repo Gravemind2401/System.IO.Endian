@@ -8,6 +8,7 @@
     <Authors>Gravemind2401</Authors>
     <Copyright>Copyright © $(Authors) 2018 - $([System.DateTime]::Now.Year)</Copyright>
     <AssemblyOriginatorKeyFile>System.IO.Endian.snk</AssemblyOriginatorKeyFile>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
 </Project>

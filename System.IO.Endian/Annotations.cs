@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO.Endian.Dynamic;
+﻿using System.IO.Endian.Dynamic;
 using System.Linq.Expressions;
 using System.Reflection;
 

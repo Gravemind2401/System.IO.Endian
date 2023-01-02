@@ -1,9 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.IO;
-using System.Linq;
-
-namespace System.IO.Endian.Tests.ComplexWrite
+﻿namespace System.IO.Endian.Tests.ComplexWrite
 {
     [TestClass]
     public partial class ComplexWrite

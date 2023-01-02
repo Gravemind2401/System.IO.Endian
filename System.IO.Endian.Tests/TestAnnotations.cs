@@ -1,7 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-
-namespace System.IO.Endian.Tests
+﻿namespace System.IO.Endian.Tests
 {
     [TestClass]
     public class TestAnnotations

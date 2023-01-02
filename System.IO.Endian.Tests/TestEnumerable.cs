@@ -1,8 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Linq;
-
-namespace System.IO.Endian.Tests
+﻿namespace System.IO.Endian.Tests
 {
     [TestClass]
     public class TestEnumerable
@@ -11,7 +7,7 @@ namespace System.IO.Endian.Tests
         {
             var rng = new Random();
             var result = new int[count];
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
                 result[i] = rng.Next(int.MinValue, int.MaxValue);
             return result;
         }
@@ -30,7 +26,7 @@ namespace System.IO.Endian.Tests
                     writer.Write(i);
 
                 stream.Position = 0;
-                int index = 0;
+                var index = 0;
                 var enumerable = reader.ReadEnumerable<int>(100).ToArray();
                 Assert.AreEqual(100, enumerable.Length);
 
@@ -52,7 +48,7 @@ namespace System.IO.Endian.Tests
                 writer.WriteEnumerable(rand);
 
                 stream.Position = 0;
-                for (int i = 0; i < 100; i++)
+                for (var i = 0; i < 100; i++)
                     Assert.AreEqual(rand[i], reader.ReadInt32());
             }
         }

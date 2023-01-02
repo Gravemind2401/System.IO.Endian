@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace System.IO.Endian.Dynamic
+﻿namespace System.IO.Endian.Dynamic
 {
     internal static class Extensions
     {

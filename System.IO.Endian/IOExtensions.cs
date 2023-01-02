@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace System.IO
+﻿namespace System.IO
 {
     internal static class IOExtensions
     {
