@@ -621,7 +621,7 @@ namespace System.IO.Endian
                     : remaining - readLength;
 
                 Seek(sourceAddress + offset, SeekOrigin.Begin);
-                BaseStream.Read(buffer, 0, readLength);
+                BaseStream.ReadAll(buffer, 0, readLength);
 
                 Seek(destinationAddress + offset, SeekOrigin.Begin);
                 BaseStream.Write(buffer, 0, readLength);
