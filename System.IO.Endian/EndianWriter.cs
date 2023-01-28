@@ -103,8 +103,7 @@ namespace System.IO.Endian
         protected EndianWriter(EndianWriter parent, long virtualOrigin)
             : base(BaseStreamOrThrow(parent), EncodingOrThrow(parent), true)
         {
-            if (parent == null)
-                throw new ArgumentNullException(nameof(parent));
+            ArgumentNullException.ThrowIfNull(parent);
 
             this.virtualOrigin = virtualOrigin;
             encoding = parent.encoding;
@@ -400,8 +399,7 @@ namespace System.IO.Endian
         /// <exception cref="ObjectDisposedException"/>
         public virtual void WriteStringFixedLength(string value, int length, char padding)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             if (length < 0)
                 throw Exceptions.ParamMustBeNonNegative(nameof(length), length);
@@ -429,9 +427,7 @@ namespace System.IO.Endian
         /// <exception cref="ObjectDisposedException"/>
         public virtual void WriteStringNullTerminated(string value)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
-
+            ArgumentNullException.ThrowIfNull(value);
             Write(encoding.GetBytes(value + '\0'));
         }
 
@@ -498,8 +494,7 @@ namespace System.IO.Endian
         /// <inheritdoc cref="WriteEnumerable{T}(IEnumerable{T}, double)"/>
         public void WriteEnumerable<T>(IEnumerable<T> values)
         {
-            if (values == null)
-                throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
 
             foreach (var value in values)
                 WriteObject(value);
@@ -514,8 +509,7 @@ namespace System.IO.Endian
         /// <inheritdoc cref="WriteObject{T}(T, double)"/>
         public void WriteEnumerable<T>(IEnumerable<T> values, double version)
         {
-            if (values == null)
-                throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
 
             foreach (var value in values)
                 WriteObject(value, version);
@@ -527,9 +521,9 @@ namespace System.IO.Endian
         /// <param name="buffer">The data to insert.</param>
         public void Insert(byte[] buffer)
         {
-            if (buffer == null)
-                throw new ArgumentNullException(nameof(buffer));
-            else if (buffer.Length == 0)
+            ArgumentNullException.ThrowIfNull(buffer);
+            
+            if (buffer.Length == 0)
                 return;
 
             var source = BaseStream.Position;
@@ -637,9 +631,7 @@ namespace System.IO.Endian
         /// <inheritdoc cref="WriteObject{T}(T, double)"/>
         public void WriteObject<T>(T value)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
-
+            ArgumentNullException.ThrowIfNull(value);
             WriteObject(value, null);
         }
 
@@ -647,18 +639,14 @@ namespace System.IO.Endian
         /// <inheritdoc cref="WriteObject(object, double)"/>
         public void WriteObject<T>(T value, double version)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
-
+            ArgumentNullException.ThrowIfNull(value);
             WriteObject(value, (double?)version);
         }
 
         /// <inheritdoc cref="WriteObject(object, double)"/>
         public void WriteObject(object value)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
-
+            ArgumentNullException.ThrowIfNull(value);
             WriteObject(value, null);
         }
 
@@ -686,9 +674,7 @@ namespace System.IO.Endian
         /// <exception cref="MissingMethodException" />
         public void WriteObject(object value, double version)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
-
+            ArgumentNullException.ThrowIfNull(value);
             WriteObject(value, (double?)version);
         }
 
@@ -703,8 +689,7 @@ namespace System.IO.Endian
         /// </param>
         protected virtual void WriteObject(object value, double? version)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
 
             //cannot detect string type automatically (fixed/prefixed/terminated)
             var type = value.GetType();
