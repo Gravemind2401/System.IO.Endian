@@ -408,7 +408,7 @@ namespace System.IO.Endian
                 return;
 
             if (value.Length > length)
-                value = value.Substring(0, length);
+                value = value[..length];
             else
             {
                 while (value.Length < length)
