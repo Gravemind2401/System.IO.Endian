@@ -696,7 +696,7 @@ namespace System.IO.Endian
             if (type.Equals(typeof(string)))
                 throw Exceptions.NotValidForStringTypes();
 
-            TypeConfiguration.Write(value, this, version);
+            TypeConfiguration.Write(value, this, Position, version);
         }
 
         /// <inheritdoc cref="WriteBufferable{T}(T, ByteOrder)"/>
