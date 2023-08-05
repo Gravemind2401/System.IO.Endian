@@ -402,7 +402,7 @@ namespace System.IO.Endian
             ArgumentNullException.ThrowIfNull(value);
 
             if (length < 0)
-                throw Exceptions.ParamMustBeNonNegative(nameof(length), length);
+                throw Exceptions.ParamMustBeNonNegative(length);
 
             if (length == 0)
                 return;
@@ -545,7 +545,7 @@ namespace System.IO.Endian
         public void Insert(byte pad, int length)
         {
             if (length < 0)
-                throw Exceptions.ParamMustBeNonNegative(nameof(length), length);
+                throw Exceptions.ParamMustBeNonNegative(length);
             else if (length == 0)
                 return;
 
@@ -568,7 +568,7 @@ namespace System.IO.Endian
         public void Fill(byte pad, int length)
         {
             if (length < 0)
-                throw Exceptions.ParamMustBeNonNegative(nameof(length), length);
+                throw Exceptions.ParamMustBeNonNegative(length);
             else if (length == 0)
                 return;
 
@@ -593,13 +593,13 @@ namespace System.IO.Endian
         public void Copy(long sourceAddress, long destinationAddress, int length)
         {
             if (sourceAddress <= 0)
-                throw Exceptions.ParamMustBePositive(nameof(sourceAddress), sourceAddress);
+                throw Exceptions.ParamMustBePositive(sourceAddress);
 
             if (destinationAddress <= 0)
-                throw Exceptions.ParamMustBePositive(nameof(destinationAddress), destinationAddress);
+                throw Exceptions.ParamMustBePositive(destinationAddress);
 
             if (length <= 0)
-                throw Exceptions.ParamMustBePositive(nameof(length), length);
+                throw Exceptions.ParamMustBePositive(length);
 
             const int blockSize = 0x10000;
             var origin = BaseStream.Position;

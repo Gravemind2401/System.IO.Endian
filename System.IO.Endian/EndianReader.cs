@@ -366,7 +366,7 @@ namespace System.IO.Endian
         public virtual string ReadString(int length, bool trim)
         {
             if (length < 0)
-                throw Exceptions.ParamMustBeNonNegative(nameof(length), length);
+                throw Exceptions.ParamMustBeNonNegative(length);
 
             if (length == 0)
                 return string.Empty;
@@ -405,7 +405,7 @@ namespace System.IO.Endian
         public virtual string ReadNullTerminatedString(int maxLength)
         {
             if (maxLength < 0)
-                throw Exceptions.ParamMustBeNonNegative(nameof(maxLength), maxLength);
+                throw Exceptions.ParamMustBeNonNegative(maxLength);
 
             if (maxLength == 0)
                 return string.Empty;
@@ -697,7 +697,7 @@ namespace System.IO.Endian
         public virtual EndianReader CreateVirtualReader(long origin)
         {
             return origin < 0 || origin > BaseStream.Length
-                ? throw Exceptions.OutOfStreamBounds(nameof(origin), origin)
+                ? throw Exceptions.OutOfStreamBounds(origin)
                 : new EndianReader(this, origin);
         }
 
@@ -708,7 +708,7 @@ namespace System.IO.Endian
         public IEnumerable<T> ReadEnumerable<T>(int count)
         {
             if (count < 0)
-                throw Exceptions.ParamMustBeNonNegative(nameof(count), count);
+                throw Exceptions.ParamMustBeNonNegative(count);
 
             var i = 0;
             while (i++ < count && BaseStream.Position < BaseStream.Length)
@@ -726,7 +726,7 @@ namespace System.IO.Endian
         public IEnumerable<T> ReadEnumerable<T>(int count, double version)
         {
             if (count < 0)
-                throw Exceptions.ParamMustBeNonNegative(nameof(count), count);
+                throw Exceptions.ParamMustBeNonNegative(count);
 
             var i = 0;
             while (i++ < count && BaseStream.Position < BaseStream.Length)
@@ -740,7 +740,7 @@ namespace System.IO.Endian
         public T[] ReadArray<T>(int count)
         {
             if (count < 0)
-                throw Exceptions.ParamMustBeNonNegative(nameof(count), count);
+                throw Exceptions.ParamMustBeNonNegative(count);
 
             var result = new T[count];
             for (var i = 0; i < count; i++)
@@ -756,7 +756,7 @@ namespace System.IO.Endian
         public T[] ReadArray<T>(int count, double version)
         {
             if (count < 0)
-                throw Exceptions.ParamMustBeNonNegative(nameof(count), count);
+                throw Exceptions.ParamMustBeNonNegative(count);
 
             var result = new T[count];
             for (var i = 0; i < count; i++)
