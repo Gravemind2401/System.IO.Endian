@@ -779,9 +779,8 @@ namespace System.IO.Endian
         /// <inheritdoc cref="ReadObject(Type, double)"/>
         public object ReadObject(Type type)
         {
-            return type == null
-                ? throw new ArgumentNullException(nameof(type))
-                : ReadObject(null, type, null);
+            ArgumentNullException.ThrowIfNull(type);
+            return ReadObject(null, type, null);
         }
 
         /// <summary>
@@ -797,34 +796,30 @@ namespace System.IO.Endian
         /// <inheritdoc cref="ReadObject(object, double)"/>
         public object ReadObject(Type type, double version)
         {
-            return type == null
-                ? throw new ArgumentNullException(nameof(type))
-                : ReadObject(null, type, version);
+            ArgumentNullException.ThrowIfNull(type);
+            return ReadObject(null, type, version);
         }
 
         /// <inheritdoc cref="ReadObject{T}(T, double)"/>
         public T ReadObject<T>(T instance)
         {
-            return instance == null
-                ? throw new ArgumentNullException(nameof(instance))
-                : (T)ReadObject(instance, instance.GetType(), null);
+            ArgumentNullException.ThrowIfNull(instance);
+            return (T)ReadObject(instance, instance.GetType(), null);
         }
 
         /// <typeparam name="T">The type of object to read.</typeparam>
         /// <inheritdoc cref="ReadObject(object, double)"/>
         public T ReadObject<T>(T instance, double version)
         {
-            return instance == null
-                ? throw new ArgumentNullException(nameof(instance))
-                : (T)ReadObject(instance, instance.GetType(), version);
+            ArgumentNullException.ThrowIfNull(instance);
+            return (T)ReadObject(instance, instance.GetType(), version);
         }
 
         /// <inheritdoc cref="ReadObject(object, double)"/>
         public object ReadObject(object instance)
         {
-            return instance == null
-                ? throw new ArgumentNullException(nameof(instance))
-                : ReadObject(instance, instance.GetType(), null);
+            ArgumentNullException.ThrowIfNull(instance);
+            return ReadObject(instance, instance.GetType(), null);
         }
 
         /// <summary>
@@ -851,9 +846,8 @@ namespace System.IO.Endian
         /// <exception cref="MissingMethodException" />
         public object ReadObject(object instance, double version)
         {
-            return instance == null
-                ? throw new ArgumentNullException(nameof(instance))
-                : ReadObject(instance, instance.GetType(), version);
+            ArgumentNullException.ThrowIfNull(instance);
+            return ReadObject(instance, instance.GetType(), version);
         }
 
         /// <summary>
