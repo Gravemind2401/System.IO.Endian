@@ -40,11 +40,13 @@ namespace System.IO.Endian.Dynamic
 
             foreach (var (min, max) in GetVersionRanges().Distinct())
             {
+                var versionTest = min ?? (max - 1); //if min is unbound, just use a number < max (null if max also unbound)
+
                 var byteOrder = classAttributes.OfType<ByteOrderAttribute>()
-                    .SingleOrDefault(a => a.ValidateVersion(min))?.ByteOrder;
+                    .SingleOrDefault(a => a.ValidateVersion(versionTest))?.ByteOrder;
 
                 var size = classAttributes.OfType<FixedSizeAttribute>()
-                    .SingleOrDefault(a => a.ValidateVersion(min))?.Size;
+                    .SingleOrDefault(a => a.ValidateVersion(versionTest))?.Size;
 
                 var def = new VersionDefinition(min, max, byteOrder, size);
                 result.versions.Add(def);
@@ -60,18 +62,18 @@ namespace System.IO.Endian.Dynamic
                     if (!propExact.HasValue && propMin == propMax)
                         propExact = propMin;
 
-                    if (!Extensions.ValidateVersion(min, propMin, propMax))
+                    if (!Extensions.ValidateVersion(versionTest, propMin, propMax))
                         continue;
 
                     if (propExact.HasValue && (propExact != min || propExact != max))
                         continue;
 
-                    var offset = attributes.OfType<OffsetAttribute>().SingleOrDefault(a => a.ValidateVersion(min))?.Offset;
+                    var offset = attributes.OfType<OffsetAttribute>().SingleOrDefault(a => a.ValidateVersion(versionTest))?.Offset;
                     if (!offset.HasValue)
                         continue;
 
-                    byteOrder = attributes.OfType<ByteOrderAttribute>().SingleOrDefault(a => a.ValidateVersion(min))?.ByteOrder;
-                    var storeType = attributes.OfType<StoreTypeAttribute>().SingleOrDefault(a => a.ValidateVersion(min))?.StoreType;
+                    byteOrder = attributes.OfType<ByteOrderAttribute>().SingleOrDefault(a => a.ValidateVersion(versionTest))?.ByteOrder;
+                    var storeType = attributes.OfType<StoreTypeAttribute>().SingleOrDefault(a => a.ValidateVersion(versionTest))?.StoreType;
                     var field = FieldDefinition<TClass>.Create(prop, offset.Value, byteOrder, storeType);
                     def.AddField(field);
                 }
@@ -81,14 +83,38 @@ namespace System.IO.Endian.Dynamic
 
             IEnumerable<(double?, double?)> GetVersionRanges()
             {
+                bool hasUnboundedMin = false, hasUnboundedMax = false;
+                foreach (var attrList in propAttributes.Values.Prepend(classAttributes))
+                {
+                    if (!hasUnboundedMin)
+                    {
+                        hasUnboundedMin = attrList.OfType<IVersionAttribute>().Any(v => v.HasMaxVersion && !v.HasMinVersion)
+                            || (attrList.OfType<MaxVersionAttribute>().Any() && !attrList.OfType<MinVersionAttribute>().Any());
+                    }
+
+                    if (!hasUnboundedMax)
+                    {
+                        hasUnboundedMax = attrList.OfType<IVersionAttribute>().Any(v => v.HasMinVersion && !v.HasMaxVersion)
+                            || (attrList.OfType<MinVersionAttribute>().Any() && !attrList.OfType<MaxVersionAttribute>().Any());
+                    }
+
+                    if (hasUnboundedMin && hasUnboundedMax)
+                        break; //dont need to check any further
+                }
+
                 var possibleVersions = propAttributes.SelectMany(kv => kv.Value)
                     .Union(classAttributes)
                     .SelectMany(GetVersions)
                     .Distinct()
                     .Concat(propAttributes.SelectMany(kv => kv.Value).OfType<VersionSpecificAttribute>().Select(a => (double?)a.Version).Distinct())
                     .Order()
-                    .Append(null) //final range will always have null max version
                     .ToList();
+
+                if (hasUnboundedMin)
+                    possibleVersions.Insert(0, null);
+
+                if (hasUnboundedMax)
+                    possibleVersions.Add(null);
 
                 for (var i = 0; i < possibleVersions.Count - 1; i++)
                     yield return (possibleVersions[i], possibleVersions[i + 1]);
@@ -106,9 +132,6 @@ namespace System.IO.Endian.Dynamic
 
                     if (versioned.HasMaxVersion)
                         yield return versioned.MaxVersion;
-
-                    if (!versioned.IsVersioned)
-                        yield return default;
                 }
                 else if (attribute is MinVersionAttribute min)
                     yield return min.MinVersion;
