@@ -3,7 +3,6 @@
 namespace System.IO.Endian.Dynamic
 {
     internal class PrimitiveFieldDefinition<TClass, TField> : FieldDefinition<TClass, TField>
-        where TField : struct
     {
         public PrimitiveFieldDefinition(PropertyInfo targetProperty, long offset, ByteOrder? byteOrder)
             : base(targetProperty, offset, byteOrder)
