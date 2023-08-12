@@ -672,11 +672,6 @@ namespace System.IO.Endian
                 _ => virtualOrigin + offset
             };
 
-            SeekAbsolute(address);
-        }
-
-        private void SeekAbsolute(long address)
-        {
             if (BaseStream.Position != address)
                 BaseStream.Position = address;
         }
@@ -771,11 +766,11 @@ namespace System.IO.Endian
         #region Dynamic Read
 
         /// <inheritdoc cref="ReadObject{T}(double)"/>
-        public T ReadObject<T>() => ReadObjectGeneric(default(T), null);
+        public T ReadObject<T>() => ReadObjectGeneric(CreateInstanceInternal<T>(), null);
 
         /// <typeparam name="T">The type of object to read.</typeparam>
         /// <inheritdoc cref="ReadObject(Type, double)"/>
-        public T ReadObject<T>(double version) => ReadObjectGeneric(default(T), version);
+        public T ReadObject<T>(double version) => ReadObjectGeneric(CreateInstanceInternal<T>(version), version);
 
         /// <inheritdoc cref="ReadObject(Type, double)"/>
         public object ReadObject(Type type)
@@ -857,6 +852,7 @@ namespace System.IO.Endian
 
         private object InvokeReadObject(object instance, Type type, double? version)
         {
+            instance ??= InvokeCreateInstance(type, version);
             return DynamicReadMethod.MakeGenericMethod(type)
                 .Invoke(this, new object[] { instance, version });
         }
@@ -865,7 +861,10 @@ namespace System.IO.Endian
         /// This function is called by all public ReadObject overloads.
         /// </summary>
         /// <typeparam name="T">The type of object to read.</typeparam>
-        /// <param name="instance">The object to populate. This value will be null if no instance was provided.</param>
+        /// <param name="instance">
+        /// The object to populate. This value will never be null.
+        /// <br/>If no instance was provided, this value will be the result of <see cref="CreateInstance{T}(double?)"/>.
+        /// </param>
         /// <param name="version">
         /// The version that was used to store the object.
         /// This determines which properties will be read, how they will be
@@ -878,12 +877,27 @@ namespace System.IO.Endian
             if (typeof(T).Equals(typeof(string)))
                 throw Exceptions.NotValidForStringTypes();
 
+            return (T)TypeConfiguration.Populate(instance, typeof(T), this, Position, version);
+        }
+
+        private static readonly MethodInfo CreateInstanceMethod = typeof(EndianReader)
+            .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
+            .First(m => m.Name == nameof(CreateInstanceInternal) && m.IsGenericMethodDefinition);
+
+        private object InvokeCreateInstance(Type type, double? version)
+        {
+            return CreateInstanceMethod.MakeGenericMethod(type)
+                .Invoke(this, new object[] { version });
+        }
+
+        private T CreateInstanceInternal<T>(double? version = default)
+        {
             //take note of origin before creating instance in case a derived class moves the stream.
             //this is important for attributes like FixedSizeAttribute to ensure the final position is correct.
             var origin = Position;
-            instance ??= CreateInstance<T>(version);
-
-            return (T)TypeConfiguration.Populate(instance, typeof(T), this, origin, version);
+            var instance = CreateInstance<T>(version) ?? throw new InvalidOperationException($"{nameof(CreateInstance)}() must not return null");
+            Seek(origin, SeekOrigin.Begin); //return to origin after the instance has been created
+            return instance;
         }
 
         protected virtual T CreateInstance<T>(double? version) => Activator.CreateInstance<T>();

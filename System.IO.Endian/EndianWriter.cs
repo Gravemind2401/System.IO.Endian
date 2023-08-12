@@ -460,11 +460,6 @@ namespace System.IO.Endian
                 _ => virtualOrigin + offset
             };
 
-            SeekAbsolute(address);
-        }
-
-        private void SeekAbsolute(long address)
-        {
             if (BaseStream.Position != address)
                 BaseStream.Position = address;
         }
