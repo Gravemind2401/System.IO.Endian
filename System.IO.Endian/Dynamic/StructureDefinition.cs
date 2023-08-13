@@ -102,6 +102,8 @@ namespace System.IO.Endian.Dynamic
                         break; //dont need to check any further
                 }
 
+                //get all the version boundaries from all version-related attributes on the class and its properties
+                //for VersionSpecificAttribute, also add a second copy of the version number (after Distinct()) so there will be a range with min and max set to the same version
                 var possibleVersions = propAttributes.SelectMany(kv => kv.Value)
                     .Union(classAttributes)
                     .SelectMany(GetVersions)
@@ -116,6 +118,7 @@ namespace System.IO.Endian.Dynamic
                 if (hasUnboundedMax)
                     possibleVersions.Add(null);
 
+                //make a version range for each consecutive ascending pair of version boundaries
                 for (var i = 0; i < possibleVersions.Count - 1; i++)
                     yield return (possibleVersions[i], possibleVersions[i + 1]);
 
@@ -142,8 +145,11 @@ namespace System.IO.Endian.Dynamic
             }
         }
 
+        /// <summary>
+        /// Contains the settings and field definitions to use when reading or writing a particular version of a <typeparamref name="TClass"/> value.
+        /// </summary>
         [DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
-        internal class VersionDefinition
+        private class VersionDefinition
         {
             private readonly List<FieldDefinition<TClass>> fields = new();
 
@@ -198,7 +204,7 @@ namespace System.IO.Endian.Dynamic
                     writer.Seek(origin + size.Value, SeekOrigin.Begin);
             }
 
-            private string GetDebuggerDisplay() => new { Min = minVersion, Max = maxVersion }.ToString();
+            private string GetDebuggerDisplay() => minVersion.HasValue || maxVersion.HasValue ? new { Min = minVersion, Max = maxVersion }.ToString() : "{Default}";
         }
     }
 }

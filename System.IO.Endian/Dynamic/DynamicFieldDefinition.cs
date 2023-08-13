@@ -2,6 +2,10 @@
 
 namespace System.IO.Endian.Dynamic
 {
+    /// <summary>
+    /// Defines a field whose type consists of additional nested fields.
+    /// </summary>
+    /// <inheritdoc cref="FieldDefinition{TClass, TField}"/>
     internal class DynamicFieldDefinition<TClass, TField> : FieldDefinition<TClass, TField>
     {
         public DynamicFieldDefinition(PropertyInfo targetProperty, long offset, ByteOrder? byteOrder)

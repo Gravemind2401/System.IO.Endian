@@ -2,6 +2,10 @@
 
 namespace System.IO.Endian.Dynamic
 {
+    /// <summary>
+    /// Defines a field of type <see cref="string"/>.
+    /// </summary>
+    /// <inheritdoc cref="FieldDefinition{TClass, TField}"/>
     internal class StringFieldDefinition<TClass> : FieldDefinition<TClass, string>
     {
         private readonly bool isFixedLength;
