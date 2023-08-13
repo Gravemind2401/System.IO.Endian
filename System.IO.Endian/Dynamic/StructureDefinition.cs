@@ -23,6 +23,12 @@ namespace System.IO.Endian.Dynamic
 
             if (definition.Size.HasValue)
                 reader.Seek(origin + definition.Size.Value, SeekOrigin.Begin);
+            else if (definition.DataLengthField != null)
+            {
+                var size = Convert.ToInt64(definition.DataLengthField.TargetProperty.GetValue(value));
+                Exceptions.ThrowIfNotPositive(size, definition.DataLengthField.TargetProperty.Name);
+                reader.Seek(origin + size, SeekOrigin.Begin);
+            }
         }
 
         public static void Write(ref TClass value, EndianWriter writer, double? version)
@@ -40,6 +46,12 @@ namespace System.IO.Endian.Dynamic
 
             if (definition.Size.HasValue)
                 writer.Seek(origin + definition.Size.Value, SeekOrigin.Begin);
+            else if (definition.DataLengthField != null)
+            {
+                var size = Convert.ToInt64(definition.DataLengthField.TargetProperty.GetValue(value));
+                Exceptions.ThrowIfNotPositive(size, definition.DataLengthField.TargetProperty.Name);
+                writer.Seek(origin + size, SeekOrigin.Begin);
+            }
         }
 
         private static VersionDefinition FindVersionDefinition(double? version)
@@ -181,6 +193,8 @@ namespace System.IO.Endian.Dynamic
             public readonly ByteOrder? ByteOrder;
             public readonly long? Size;
 
+            public FieldDefinition<TClass> DataLengthField { get; private set; }
+
             public VersionDefinition(double? minVersion, double? maxVersion, ByteOrder? byteOrder, long? size)
             {
                 fields = new();
@@ -193,6 +207,13 @@ namespace System.IO.Endian.Dynamic
 
             public void AddField(FieldDefinition<TClass> definition)
             {
+                if (definition.IsDataLengthProperty)
+                {
+                    if (DataLengthField != null)
+                        throw new InvalidDataException($"{nameof(DataLengthAttribute)} can only be applied to one property at a time.");
+                    DataLengthField = definition;
+                }
+
                 //ensure list stays in order of offset (not using SortedList because it doesnt allow duplicates)
                 var index = fields.FindIndex(f => f.Offset > definition.Offset);
                 if (index >= 0)
