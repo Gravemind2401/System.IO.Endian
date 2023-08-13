@@ -260,7 +260,12 @@ namespace System.IO.Endian
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
     public sealed class VersionNumberAttribute : Attribute
     {
-
+        internal static void ThrowIfInvalidPropertyType(Type type)
+        {
+            var typeCode = Type.GetTypeCode(type);
+            if (typeCode < TypeCode.SByte || typeCode > TypeCode.Double)
+                throw new InvalidDataException($"{nameof(VersionNumberAttribute)} is not valid for properties stored as {type.Name}.");
+        }
     }
 
     /// <summary>
