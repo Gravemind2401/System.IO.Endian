@@ -14,6 +14,11 @@ namespace System.IO.Endian
         sealed bool IsVersioned => HasMinVersion || HasMaxVersion;
     }
 
+    internal interface IStringTypeAttribute
+    {
+        //empty interface for easy OfType<> checks
+    }
+
     /// <summary>
     /// Specifies the size, in bytes, of an object when it is stored in a stream. Overrides the <seealso cref="DataLengthAttribute"/>.
     /// </summary>
@@ -92,8 +97,7 @@ namespace System.IO.Endian
         /// <param name="version">The version to check.</param>
         public static long ValueFor(Type type, double? version)
         {
-            return TypeConfiguration.GetConfiguration(type).FixedSizeAttributes
-                .GetVersion(version).Size;
+            return type.GetCustomAttributes<FixedSizeAttribute>().GetVersion(version).Size;
         }
     }
 
@@ -399,7 +403,7 @@ namespace System.IO.Endian
     /// Specifies that a string is stored as fixed-length.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
-    public sealed class FixedLengthAttribute : Attribute
+    public sealed class FixedLengthAttribute : Attribute, IStringTypeAttribute
     {
         /// <summary>
         /// Gets the number of bytes used to store the string.
@@ -438,7 +442,7 @@ namespace System.IO.Endian
     /// Specifies that a string is stored as null-terminated, optionally using a minimum number of bytes.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
-    public sealed class NullTerminatedAttribute : Attribute
+    public sealed class NullTerminatedAttribute : Attribute, IStringTypeAttribute
     {
         private int? length;
 
@@ -464,7 +468,7 @@ namespace System.IO.Endian
     /// Specifies that a string is stored as length-prefixed.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
-    public sealed class LengthPrefixedAttribute : Attribute
+    public sealed class LengthPrefixedAttribute : Attribute, IStringTypeAttribute
     {
 
     }
