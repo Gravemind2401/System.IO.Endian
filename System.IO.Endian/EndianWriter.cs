@@ -702,7 +702,10 @@ namespace System.IO.Endian
             if (typeof(T).Equals(typeof(string)))
                 throw Exceptions.NotValidForStringTypes();
 
-            TypeConfiguration.Write(value, this, Position, version);
+            if (DelegateHelper.IsTypeSupported<T>())
+                DelegateHelper<T>.InvokeDefaultWrite(this, value);
+            else
+                StructureDefinition<T>.Write(ref value, this, ref version);
         }
 
         /// <inheritdoc cref="WriteBufferable{T}(T, ByteOrder)"/>

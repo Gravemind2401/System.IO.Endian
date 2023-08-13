@@ -9,7 +9,7 @@ namespace System.IO.Endian.Dynamic
 
         private readonly List<VersionDefinition> versions = new();
 
-        public static void Populate(ref TClass value, EndianReader reader, double? version, long origin)
+        public static void Populate(ref TClass value, EndianReader reader, ref double? version, in long origin)
         {
             instance ??= FromAttributes();
 
@@ -45,7 +45,7 @@ namespace System.IO.Endian.Dynamic
             }
         }
 
-        public static void Write(ref TClass value, EndianWriter writer, double? version)
+        public static void Write(ref TClass value, EndianWriter writer, ref double? version)
         {
             instance ??= FromAttributes();
 

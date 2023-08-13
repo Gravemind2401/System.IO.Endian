@@ -890,7 +890,11 @@ namespace System.IO.Endian
             if (typeof(T).Equals(typeof(string)))
                 throw Exceptions.NotValidForStringTypes();
 
-            return (T)TypeConfiguration.Populate(instance, typeof(T), this, origin, version);
+            if (DelegateHelper.IsTypeSupported<T>())
+                return DelegateHelper<T>.InvokeDefaultRead(this);
+
+            StructureDefinition<T>.Populate(ref instance, this, ref version, origin);
+            return instance;
         }
 
         private static readonly MethodInfo CreateInstanceMethod = typeof(EndianReader)
