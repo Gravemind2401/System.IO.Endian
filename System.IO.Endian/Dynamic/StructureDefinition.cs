@@ -3,11 +3,11 @@ using System.Reflection;
 
 namespace System.IO.Endian.Dynamic
 {
-    public class StructureDefinition<TClass>
+    internal class StructureDefinition<TClass>
     {
-        private static StructureDefinition<TClass> instance;
+        #region Static Members
 
-        private readonly List<VersionDefinition> versions = new();
+        private static StructureDefinition<TClass> instance;
 
         public static void Populate(ref TClass value, EndianReader reader, ref double? version, in long origin)
         {
@@ -91,7 +91,7 @@ namespace System.IO.Endian.Dynamic
             return instance.versions.First(d => Extensions.ValidateVersion(version, d.MinVersion, d.MaxVersion));
         }
 
-        public static StructureDefinition<TClass> FromAttributes()
+        private static StructureDefinition<TClass> FromAttributes()
         {
             var classAttributes = typeof(TClass).GetCustomAttributes().OfType<Attribute>().ToList();
 
@@ -239,11 +239,34 @@ namespace System.IO.Endian.Dynamic
             }
         }
 
+        #endregion
+
+        #region Instance Members
+
+        private readonly List<VersionDefinition> versions = new();
+
+        private StructureDefinition()
+        { }
+
+        internal StructureDefinition(IEnumerable<VersionDefinition> versions)
+        {
+            var sorted = versions
+                .OrderByDescending(v => v.MinVersion.HasValue || v.MaxVersion.HasValue) //null range last
+                .ThenBy(v => v.MinVersion.HasValue) //null MinVersion first
+                .ThenBy(v => v.MinVersion)
+                .ThenByDescending(v => v.MaxVersion.HasValue) //null MaxVersion last
+                .ThenBy(v => v.MaxVersion);
+
+            this.versions.AddRange(sorted);
+        }
+
+        #endregion
+
         /// <summary>
         /// Contains the settings and field definitions to use when reading or writing a particular version of a <typeparamref name="TClass"/> value.
         /// </summary>
         [DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
-        private class VersionDefinition
+        public sealed class VersionDefinition
         {
             private readonly List<FieldDefinition<TClass>> fields = new();
 
