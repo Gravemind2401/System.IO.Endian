@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+    <Using Include="System.IO.Endian.Tests.Structures" />
   </ItemGroup>
 
 </Project>
