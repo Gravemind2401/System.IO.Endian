@@ -1,11 +1,11 @@
-﻿namespace System.IO.Endian.Tests.ComplexRead
+﻿namespace System.IO.Endian.Tests.DynamicRead
 {
-    public partial class ComplexRead
+    public partial class DynamicRead
     {
         [DataTestMethod]
         [DataRow(ByteOrder.LittleEndian)]
         [DataRow(ByteOrder.BigEndian)]
-        public void ReadStrings01(ByteOrder order)
+        public void Strings01(ByteOrder order)
         {
             var value1 = "Length_Prefixed_String_#01!";
             var value2 = "Fixed_Length_String_#01!";
@@ -50,7 +50,7 @@
         [DataTestMethod]
         [DataRow(ByteOrder.LittleEndian)]
         [DataRow(ByteOrder.BigEndian)]
-        public void ReadStrings02(ByteOrder order)
+        public void Strings02(ByteOrder order)
         {
             var value1 = "Length_Prefixed_String_#01!";
             var value2 = "Length_Prefixed_String_#02!";

@@ -1,7 +1,7 @@
-﻿namespace System.IO.Endian.Tests.ComplexWrite
+﻿namespace System.IO.Endian.Tests.DynamicWrite
 {
     [TestClass]
-    public partial class ComplexWrite
+    public partial class DynamicWrite
     {
         [DataTestMethod]
         [DataRow(ByteOrder.LittleEndian)]

@@ -5,7 +5,7 @@ using System.Text;
 namespace System.IO.Endian
 {
     /// <summary>
-    /// Reads primitive and complex data types from a stream in a specific byte order and encoding.
+    /// Reads primitive and dynamic data types from a stream in a specific byte order and encoding.
     /// </summary>
     public class EndianReader : BinaryReader, IEndianStream
     {
@@ -784,7 +784,7 @@ namespace System.IO.Endian
         }
 
         /// <summary>
-        /// Reads a complex object from the current stream using reflection.
+        /// Reads a dynamic object from the current stream using reflection.
         /// </summary>
         /// <remarks>
         /// The type being read must have a public parameterless constructor.
@@ -823,7 +823,7 @@ namespace System.IO.Endian
         }
 
         /// <summary>
-        /// Populates the properties of a complex object from the current stream using reflection.
+        /// Populates the properties of a dynamic object from the current stream using reflection.
         /// </summary>
         /// <remarks>
         /// Each property to be read must have public get/set methods and

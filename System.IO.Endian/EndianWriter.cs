@@ -5,7 +5,7 @@ using System.Text;
 namespace System.IO.Endian
 {
     /// <summary>
-    /// Writes primitive and complex data types to a stream in a specific byte order and encoding.
+    /// Writes primitive and dynamic data types to a stream in a specific byte order and encoding.
     /// </summary>
     public class EndianWriter : BinaryWriter, IEndianStream
     {
@@ -651,7 +651,7 @@ namespace System.IO.Endian
         }
 
         /// <summary>
-        /// Writes a complex object to the current stream using reflection.
+        /// Writes a dynamic object to the current stream using reflection.
         /// </summary>
         /// <remarks>
         /// The type being written must have a public parameterless constructor.

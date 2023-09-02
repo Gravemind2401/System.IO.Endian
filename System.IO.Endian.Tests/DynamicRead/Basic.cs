@@ -1,7 +1,7 @@
-﻿namespace System.IO.Endian.Tests.ComplexRead
+﻿namespace System.IO.Endian.Tests.DynamicRead
 {
     [TestClass]
-    public partial class ComplexRead
+    public partial class DynamicRead
     {
         [DataTestMethod]
         [DataRow(ByteOrder.LittleEndian)]

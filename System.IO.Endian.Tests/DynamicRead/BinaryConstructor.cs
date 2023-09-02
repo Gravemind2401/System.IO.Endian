@@ -1,8 +1,8 @@
-﻿namespace System.IO.Endian.Tests.ComplexRead
+﻿namespace System.IO.Endian.Tests.DynamicRead
 {
     //TODO: re-implement BinaryConstructor or remove this
 
-    public partial class ComplexRead
+    public partial class DynamicRead
     {
         //[DataTestMethod]
         //[DataRow(ByteOrder.LittleEndian)]
