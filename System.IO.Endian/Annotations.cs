@@ -103,8 +103,10 @@ namespace System.IO.Endian
 
     /// <summary>
     /// Specifies that the property value represents the number of bytes used to store its containing instance.
-    /// <br/>This attribute is only valid for integer typed properties. The property value must be a positive integer less than <see cref="long.MaxValue"/>.
     /// </summary>
+    /// <remarks>
+    /// This attribute is only valid for integer typed properties. The property value must be a positive integer less than <see cref="long.MaxValue"/>.
+    /// </remarks>
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = true, Inherited = false)]
     public sealed class DataLengthAttribute : Attribute, IVersionAttribute
     {
@@ -259,8 +261,10 @@ namespace System.IO.Endian
 
     /// <summary>
     /// Specifies that a property holds the version number of the object being read or written.
-    /// This attribute is only valid for integer and floating-point typed properties.
     /// </summary>
+    /// <remarks>
+    /// This attribute is only valid for integer and floating-point typed properties.
+    /// </remarks>
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
     public sealed class VersionNumberAttribute : Attribute
     {
@@ -439,7 +443,7 @@ namespace System.IO.Endian
     }
 
     /// <summary>
-    /// Specifies that a string is stored as null-terminated, optionally using a minimum number of bytes.
+    /// Specifies that a string is stored as null-terminated, optionally using a maximum number of characters.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
     public sealed class NullTerminatedAttribute : Attribute, IStringTypeAttribute
@@ -449,7 +453,7 @@ namespace System.IO.Endian
         public bool HasLength => length.HasValue;
 
         /// <summary>
-        /// Gets or sets the number of bytes used to store the string.
+        /// Gets or sets the maximum number of characters allowed to be stored for the string.
         /// </summary>
         public int Length
         {
@@ -492,7 +496,7 @@ namespace System.IO.Endian
         private double? maxVersion;
 
         /// <summary>
-        /// Gets the type that used to store the object.
+        /// Gets the type used to store the object.
         /// </summary>
         public Type StoreType { get; }
 
