@@ -352,7 +352,7 @@ namespace System.IO.Endian
             Write(a, byteOrder);
             Write(b, byteOrder);
             Write(c, byteOrder);
-            Write(bytes.AsSpan().Slice(8));
+            Write(bytes.AsSpan()[8..]);
         }
 
         #endregion
@@ -518,7 +518,7 @@ namespace System.IO.Endian
         public void Insert(byte[] buffer)
         {
             ArgumentNullException.ThrowIfNull(buffer);
-            
+
             if (buffer.Length == 0)
                 return;
 
