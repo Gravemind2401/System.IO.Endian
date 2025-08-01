@@ -36,7 +36,7 @@ namespace System.IO.Endian
         /// <exception cref="ArgumentException"/>
         /// <exception cref="ArgumentNullException"/>
         public EndianReader(Stream input)
-            : this(input, BitConverter.IsLittleEndian ? ByteOrder.LittleEndian : ByteOrder.BigEndian, new UTF8Encoding(), false)
+            : this(input, NativeByteOrder, new UTF8Encoding(), false)
         { }
 
         /// <summary>
@@ -325,6 +325,9 @@ namespace System.IO.Endian
         /// Reads a globally unique identifier from the current stream using the specified byte order
         /// and advances the current position of the stream by sixteen bytes.
         /// </summary>
+        /// <returns>
+        /// A globally unique identifier (GUID) read from the current stream.
+        /// </returns>
         /// <inheritdoc cref="ReadInt32(ByteOrder)"/>
         public virtual Guid ReadGuid(ByteOrder byteOrder)
         {
