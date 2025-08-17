@@ -300,69 +300,6 @@ namespace System.IO.Endian
     }
 
     /// <summary>
-    /// Specifies that a property is only applicable after a certain version.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Property, Inherited = false)]
-    public sealed class MinVersionAttribute : Attribute
-    {
-        /// <summary>
-        /// Gets the inclusive minimum version that the property is applicable to.
-        /// </summary>
-        public double MinVersion { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the <seealso cref="MinVersionAttribute"/> class with the specified minimum version value.
-        /// </summary>
-        /// <param name="minVersion">The inclusive minimum version that the property is applicable to.</param>
-        public MinVersionAttribute(double minVersion)
-        {
-            MinVersion = minVersion;
-        }
-    }
-
-    /// <summary>
-    /// Specifies that a property is only applicable until a certain version.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Property, Inherited = false)]
-    public sealed class MaxVersionAttribute : Attribute
-    {
-        /// <summary>
-        /// Gets the exclusive maximum version that the property is applicable to.
-        /// </summary>
-        public double MaxVersion { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the <seealso cref="MaxVersionAttribute"/> class with the specified maximum version value.
-        /// </summary>
-        /// <param name="maxVersion">The exclusive maximum version that the property is applicable to.</param>
-        public MaxVersionAttribute(double maxVersion)
-        {
-            MaxVersion = maxVersion;
-        }
-    }
-
-    /// <summary>
-    /// Specifies that a property is only applicable for a certain version.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Property, Inherited = false)]
-    public sealed class VersionSpecificAttribute : Attribute
-    {
-        /// <summary>
-        /// Gets the version that the property is applicable to.
-        /// </summary>
-        public double Version { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the <seealso cref="VersionSpecificAttribute"/> class with the specified version value.
-        /// </summary>
-        /// <param name="version">The version that the property is applicable to.</param>
-        public VersionSpecificAttribute(double version)
-        {
-            Version = version;
-        }
-    }
-
-    /// <summary>
     /// Specifies that an object is stored using a specific byte order.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Property, AllowMultiple = true, Inherited = false)]

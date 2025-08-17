@@ -240,19 +240,6 @@ namespace System.IO.Endian.Dynamic
                 {
                     var attributes = propAttributes[prop];
 
-                    var propMin = attributes.OfType<MinVersionAttribute>().SingleOrDefault()?.MinVersion;
-                    var propMax = attributes.OfType<MaxVersionAttribute>().SingleOrDefault()?.MaxVersion;
-                    var propExact = attributes.OfType<VersionSpecificAttribute>().SingleOrDefault()?.Version;
-
-                    if (!propExact.HasValue && propMin == propMax)
-                        propExact = propMin;
-
-                    if (!Extensions.ValidateVersion(versionTest, propMin, propMax))
-                        continue;
-
-                    if (propExact.HasValue && (propExact != min || propExact != max))
-                        continue;
-
                     var offset = attributes.OfType<OffsetAttribute>().SingleOrDefault(a => a.ValidateVersion(versionTest))?.Offset;
                     if (!offset.HasValue)
                         continue;
@@ -272,28 +259,20 @@ namespace System.IO.Endian.Dynamic
                 foreach (var attrList in propAttributes.Values.Prepend(classAttributes))
                 {
                     if (!hasUnboundedMin)
-                    {
-                        hasUnboundedMin = attrList.OfType<IVersionAttribute>().Any(v => v.HasMaxVersion && !v.HasMinVersion)
-                            || (attrList.OfType<MaxVersionAttribute>().Any() && !attrList.OfType<MinVersionAttribute>().Any());
-                    }
+                        hasUnboundedMin = attrList.OfType<IVersionAttribute>().Any(v => v.HasMaxVersion && !v.HasMinVersion);
 
                     if (!hasUnboundedMax)
-                    {
-                        hasUnboundedMax = attrList.OfType<IVersionAttribute>().Any(v => v.HasMinVersion && !v.HasMaxVersion)
-                            || (attrList.OfType<MinVersionAttribute>().Any() && !attrList.OfType<MaxVersionAttribute>().Any());
-                    }
+                        hasUnboundedMax = attrList.OfType<IVersionAttribute>().Any(v => v.HasMinVersion && !v.HasMaxVersion);
 
                     if (hasUnboundedMin && hasUnboundedMax)
                         break; //dont need to check any further
                 }
 
                 //get all the version boundaries from all version-related attributes on the class and its properties
-                //for VersionSpecificAttribute, also add a second copy of the version number (after Distinct()) so there will be a range with min and max set to the same version
                 var possibleVersions = propAttributes.SelectMany(kv => kv.Value)
                     .Union(classAttributes)
                     .SelectMany(GetVersions)
                     .Distinct()
-                    .Concat(propAttributes.SelectMany(kv => kv.Value).OfType<VersionSpecificAttribute>().Select(a => (double?)a.Version).Distinct())
                     .Order()
                     .ToList();
 
@@ -321,12 +300,6 @@ namespace System.IO.Endian.Dynamic
                     if (versioned.HasMaxVersion)
                         yield return versioned.MaxVersion;
                 }
-                else if (attribute is MinVersionAttribute min)
-                    yield return min.MinVersion;
-                else if (attribute is MaxVersionAttribute max)
-                    yield return max.MaxVersion;
-                else if (attribute is VersionSpecificAttribute spec)
-                    yield return spec.Version;
             }
         }
 

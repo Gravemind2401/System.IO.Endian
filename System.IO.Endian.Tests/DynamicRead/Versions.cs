@@ -92,7 +92,7 @@ namespace System.IO.Endian.Tests.DynamicRead
             using (var reader = new EndianReader(stream, order))
             using (var writer = new EndianWriter(stream, order))
             {
-                var rand = new object[6];
+                var rand = new object[5];
 
                 rand[0] = rng.Next(int.MinValue, int.MaxValue);
                 writer.Write((int)rand[0]);
@@ -110,9 +110,6 @@ namespace System.IO.Endian.Tests.DynamicRead
 
                 rand[4] = rng.NextDouble();
                 writer.Write((double)rand[4]);
-
-                rand[5] = rng.NextDouble();
-                writer.Write((double)rand[5]);
 
                 stream.Position = 0;
                 var obj = (T)reader.ReadObject(typeof(T));
@@ -158,7 +155,6 @@ namespace System.IO.Endian.Tests.DynamicRead
                 Assert.AreEqual(rand[2], obj.Property2);
                 Assert.IsNull(obj.Property3);
                 Assert.AreEqual(rand[4], obj.Property4);
-                Assert.AreEqual(rand[5], obj.Property5);
             }
         }
 

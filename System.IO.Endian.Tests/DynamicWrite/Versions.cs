@@ -92,8 +92,7 @@
                 Property1 = rng.Next(int.MinValue, int.MaxValue),
                 Property2 = (float)rng.NextDouble(),
                 Property3 = (float)rng.NextDouble(),
-                Property4 = rng.NextDouble(),
-                Property5 = rng.NextDouble(),
+                Property4 = rng.NextDouble()
             };
 
             using (var stream = new MemoryStream())
@@ -152,7 +151,6 @@
                 Assert.AreEqual(obj.Property2, reader.ReadSingle());
                 Assert.AreEqual(0, reader.ReadInt32());
                 Assert.AreEqual(obj.Property4, reader.ReadDouble());
-                Assert.AreEqual(obj.Property5, reader.ReadDouble());
             }
         }
 
