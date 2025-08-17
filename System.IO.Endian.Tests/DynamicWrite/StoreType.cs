@@ -26,7 +26,8 @@
             {
                 Property1 = rng.Next(short.MinValue, short.MaxValue),
                 Property2 = rng.Next(byte.MinValue, byte.MaxValue),
-                Property3 = rng.NextDouble()
+                Property3 = rng.NextDouble(),
+                Property4 = (Enum32)rng.Next((int)Enum32.Value01, (int)Enum32.Value03 + 1),
             };
 
             using (var stream = new MemoryStream())
@@ -39,6 +40,7 @@
                 Assert.AreEqual((short)obj.Property1, reader.ReadInt16());
                 Assert.AreEqual((byte)obj.Property2, reader.ReadByte());
                 Assert.AreEqual((float)obj.Property3, reader.ReadSingle());
+                Assert.AreEqual((long)obj.Property4, reader.ReadInt64());
             }
         }
     }
