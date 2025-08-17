@@ -24,7 +24,7 @@ namespace System.IO.Endian
             return (int)GetSizeOfTMethod.MakeGenericMethod(type).Invoke(null, null);
         }
 
-        private static readonly MethodInfo GetPackSizeTMethod = typeof(IBufferable).GetMethod(nameof(GetSizeOfT), BindingFlags.NonPublic | BindingFlags.Static);
+        private static readonly MethodInfo GetPackSizeTMethod = typeof(IBufferable).GetMethod(nameof(GetPackSizeT), BindingFlags.NonPublic | BindingFlags.Static);
         private static readonly MethodInfo GetSizeOfTMethod = typeof(IBufferable).GetMethod(nameof(GetSizeOfT), BindingFlags.NonPublic | BindingFlags.Static);
 
         private static int GetPackSizeT<T>() where T : IBufferable => T.PackSize;

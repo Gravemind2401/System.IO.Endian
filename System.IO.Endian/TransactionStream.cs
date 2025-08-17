@@ -100,7 +100,7 @@
         /// </summary>
         /// <param name="buffer">
         /// An array of bytes. When this method returns, the buffer contains the specified
-        /// byte array with the values between offset and (offset + count - 1) replaced by
+        /// byte array with the values between <paramref name="offset"/> and <c>(<paramref name="offset"/> + <paramref name="count"/> - 1)</c> replaced by
         /// the bytes read from the current source.
         /// </param>
         /// <param name="offset">
@@ -115,8 +115,14 @@
         /// number of bytes requested if that number of bytes are not currently available,
         /// or zero if the end of the stream is reached before any bytes are read.
         /// </returns>
+        /// <exception cref="ArgumentNullException" />
+        /// <exception cref="ArgumentOutOfRangeException" />
         public override int Read(byte[] buffer, int offset, int count)
         {
+            ArgumentNullException.ThrowIfNull(buffer);
+            Exceptions.ThrowIfNotZeroOrPositive(offset);
+            Exceptions.ThrowIfNotZeroOrPositive(count);
+
             if (!CanRead)
                 throw new ObjectDisposedException(null);
 
@@ -199,10 +205,10 @@
         /// <param name="value">
         /// The value at which to set the length.
         /// </param>
+        /// <exception cref="ArgumentOutOfRangeException" />
         public override void SetLength(long value)
         {
-            if (length < 0)
-                throw new ArgumentOutOfRangeException(nameof(value));
+            Exceptions.ThrowIfNotZeroOrPositive(value);
 
             if (!IsOpen)
                 throw new ObjectDisposedException(null);
@@ -222,10 +228,24 @@
         /// <param name="count">
         /// The maximum number of bytes to write.
         /// </param>
+        /// <exception cref="ArgumentNullException" />
+        /// <exception cref="ArgumentOutOfRangeException" />
         public override void Write(byte[] buffer, int offset, int count)
         {
+            ArgumentNullException.ThrowIfNull(buffer);
+            Exceptions.ThrowIfNotZeroOrPositive(offset);
+            Exceptions.ThrowIfNotZeroOrPositive(count);
+
+            if (offset >= buffer.Length)
+                throw new ArgumentOutOfRangeException(nameof(offset), offset, "Offset is outside the bounds of the buffer array");
+            if (offset + count > buffer.Length)
+                throw new ArgumentOutOfRangeException(nameof(count), count, "Offset + Count is outside the bounds of the buffer array");
+
             if (!CanWrite)
                 throw new ObjectDisposedException(null);
+
+            if (count == 0)
+                return;
 
             byte[] patch;
             long patchOffset;
@@ -271,6 +291,7 @@
         /// <param name="target">
         /// The <see cref="TransactionStream"/> to copy the changes to.
         /// </param>
+        /// <exception cref="ArgumentNullException" />
         public void CopyChanges(TransactionStream target)
         {
             ArgumentNullException.ThrowIfNull(target);
@@ -318,8 +339,11 @@
         /// <summary>
         /// Commit all pending changes to the specified stream and clears the change list.
         /// </summary>
+        /// <exception cref="ArgumentNullException" />
         public void ApplyChanges(Stream destination)
         {
+            ArgumentNullException.ThrowIfNull(destination);
+
             if (!IsOpen)
                 throw new ObjectDisposedException(null);
 

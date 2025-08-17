@@ -1,9 +1,11 @@
-﻿namespace System.IO
+﻿using System.IO.Endian;
+
+namespace System.IO
 {
     internal static class IOExtensions
     {
         /// <summary>
-        /// This is the same as <see cref="Stream.Read(byte[], int, int)"/> except it is guaranteed not read less than the specified
+        /// This is the same as <see cref="Stream.Read(byte[], int, int)"/> except it is guaranteed to not read less than the specified
         /// number of bytes unless the end of stream has been reached.
         /// </summary>
         /// <param name="stream">The stream to read from.</param>
@@ -14,6 +16,11 @@
         /// <inheritdoc cref="Stream.Read(byte[], int, int)"/>
         public static int ReadAll(this Stream stream, byte[] buffer, int offset, int count)
         {
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentNullException.ThrowIfNull(buffer);
+            Exceptions.ThrowIfNotZeroOrPositive(offset);
+            Exceptions.ThrowIfNotZeroOrPositive(count);
+
             var totalBytes = 0;
 
             int bytesRead;
@@ -30,7 +37,7 @@
         }
 
         /// <summary>
-        /// This is the same as <see cref="Stream.Read(Span{byte})"/> except it is guaranteed not read less than the specified
+        /// This is the same as <see cref="Stream.Read(Span{byte})"/> except it is guaranteed to not read less than the specified
         /// number of bytes unless the end of stream has been reached.
         /// </summary>
         /// <param name="stream">The stream to read from.</param>
@@ -41,6 +48,8 @@
         /// <inheritdoc cref="Stream.Read(Span{byte})"/>
         public static int ReadAll(this Stream stream, Span<byte> buffer)
         {
+            ArgumentNullException.ThrowIfNull(stream);
+
             var totalBytes = 0;
 
             int bytesRead;

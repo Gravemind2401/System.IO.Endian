@@ -387,13 +387,15 @@ namespace System.IO.Endian
         /// <exception cref="ObjectDisposedException"/>
         public virtual string ReadNullTerminatedString()
         {
-            var bytes = new List<byte>();
+            var bytes = new List<byte>(128);
 
             byte val;
             while (BaseStream.Position < BaseStream.Length && (val = ReadByte()) != 0)
                 bytes.Add(val);
 
-            return encoding.GetString(bytes.ToArray());
+            return bytes.Count == 0
+                ? string.Empty
+                : encoding.GetString(bytes.ToArray());
         }
 
         /// <summary>
@@ -651,7 +653,7 @@ namespace System.IO.Endian
 
         /// <summary>
         /// Gets the position of the base stream.
-        /// If the current instance was created using <see cref="CreateVirtualReader"/>
+        /// <br/>If the current instance was created using <see cref="CreateVirtualReader"/>
         /// the position returned will be relative to the virtual origin.
         /// </summary>
         public long Position => BaseStream.Position - virtualOrigin;
@@ -841,10 +843,8 @@ namespace System.IO.Endian
         /// <param name="instance">The object to populate.</param>
         /// <param name="version">
         /// The version that was used to store the object.
-        /// <para>
-        /// This determines which properties will be read, how they will be
+        /// <br/>This determines which properties will be read, how they will be
         /// read and at what location in the stream to read them from.
-        /// </para>
         /// </param>
         /// <exception cref="AmbiguousMatchException" />
         /// <exception cref="ArgumentException" />
@@ -896,8 +896,11 @@ namespace System.IO.Endian
         /// <br/>This value will be null if no version was provided.
         /// </param>
         /// <param name="origin">The position of the stream prior to any reading or object instanciation taking place.</param>
+        /// <exception cref="ArgumentNullException" />
         protected virtual T PopulateObject<T>(T instance, double? version, long origin)
         {
+            ArgumentNullException.ThrowIfNull(instance);
+
             //cannot detect string type automatically (fixed/prefixed/terminated)
             if (typeof(T).Equals(typeof(string)))
                 throw Exceptions.NotValidForStringTypes();
@@ -939,7 +942,7 @@ namespace System.IO.Endian
         /// <returns>A new instance of the specified bufferable type.</returns>
         /// <remarks>
         /// Bufferable types are expected to be a contiguous span of bytes containing all data required to instanciate the type.
-        /// All relevant properties of the type must be deserialized during <see cref="IBufferable{TBufferable}.ReadFromBuffer(ReadOnlySpan{byte})"/>.
+        /// <br/>All relevant properties of the type must be deserialized during <see cref="IBufferable{TBufferable}.ReadFromBuffer(ReadOnlySpan{byte})"/>.
         /// <see cref="OffsetAttribute"/> and other related attributes will be ignored.
         /// </remarks>
         public T ReadBufferable<T>(ByteOrder byteOrder) where T : IBufferable<T>

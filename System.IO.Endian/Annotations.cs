@@ -95,8 +95,12 @@ namespace System.IO.Endian
         /// </summary>
         /// <param name="type">The type to check.</param>
         /// <param name="version">The version to check.</param>
+        /// <exception cref="ArgumentNullException" />
+        /// <exception cref="InvalidOperationException" />
         public static long ValueFor(Type type, double? version)
         {
+            ArgumentNullException.ThrowIfNull(type);
+
             var size = type.GetCustomAttributes<FixedSizeAttribute>().GetVersion(version)?.Size;
 
             if (size.HasValue)
@@ -108,7 +112,7 @@ namespace System.IO.Endian
                 .MakeGenericMethod(type);
 
             size = (long?)method.Invoke(null, new object[] { version });
-            return size.Value;
+            return size ?? throw new InvalidOperationException($"No {nameof(FixedSizeAttribute)} defined for the specified version");
         }
 
         private static long? ValueFromStructureDefinition<T>(double? version) => StructureDefinition<T>.SizeFor(version);
@@ -263,8 +267,12 @@ namespace System.IO.Endian
         /// </summary>
         /// <param name="prop">The property to check.</param>
         /// <param name="version">The version to check.</param>
+        /// <exception cref="ArgumentNullException" />
+        /// <exception cref="InvalidOperationException" />
         public static long ValueFor(PropertyInfo prop, double? version)
         {
+            ArgumentNullException.ThrowIfNull(prop);
+
             var offset = prop.GetCustomAttributes<OffsetAttribute>()
                 .GetVersion(version)?.Offset;
 
@@ -276,10 +284,11 @@ namespace System.IO.Endian
                 .GetGenericMethodDefinition()
                 .MakeGenericMethod(prop.DeclaringType);
 
-            return (long)method.Invoke(null, new object[] { prop, version });
+            offset = (long?)method.Invoke(null, new object[] { prop, version });
+            return offset ?? throw new InvalidOperationException($"No {nameof(OffsetAttribute)} defined for the specified version");
         }
 
-        private static long ValueFromStructureDefinition<T>(PropertyInfo prop, double? version) => StructureDefinition<T>.OffsetFor(prop, version);
+        private static long? ValueFromStructureDefinition<T>(PropertyInfo prop, double? version) => StructureDefinition<T>.OffsetFor(prop, version);
     }
 
     /// <summary>

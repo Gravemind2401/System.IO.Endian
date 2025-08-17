@@ -165,10 +165,10 @@ namespace System.IO.Endian.Dynamic
             }
         }
 
-        public static long OffsetFor(PropertyInfo property, double? version)
+        public static long? OffsetFor(PropertyInfo property, double? version)
         {
             var def = FindVersionDefinition(version);
-            return def.Fields.First(f => f.TargetProperty == property).Offset;
+            return def.Fields.FirstOrDefault(f => f.TargetProperty == property)?.Offset;
         }
 
         public static long? SizeFor(double? version)

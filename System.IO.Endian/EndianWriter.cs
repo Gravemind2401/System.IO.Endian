@@ -36,7 +36,7 @@ namespace System.IO.Endian
         /// <exception cref="ArgumentException"/>
         /// <exception cref="ArgumentNullException"/>
         public EndianWriter(Stream output)
-            : this(output, BitConverter.IsLittleEndian ? ByteOrder.LittleEndian : ByteOrder.BigEndian, new UTF8Encoding(), false)
+            : this(output, NativeByteOrder, new UTF8Encoding(), false)
         { }
 
         /// <summary>
@@ -370,6 +370,8 @@ namespace System.IO.Endian
         /// <exception cref="ObjectDisposedException"/>
         public virtual void Write(string value, ByteOrder byteOrder)
         {
+            ArgumentNullException.ThrowIfNull(value);
+
             Write(encoding.GetByteCount(value), byteOrder);
             Write(encoding.GetBytes(value));
         }
@@ -380,7 +382,7 @@ namespace System.IO.Endian
 
         /// <remarks>
         /// If the string is shorter than the specified length it will be padded with white-space.
-        /// If the string is longer than the specified length it will be truncated.
+        /// <br/>If the string is longer than the specified length it will be truncated.
         /// </remarks>
         /// <inheritdoc cref="WriteStringFixedLength(string, int, char)"/>
         public virtual void WriteStringFixedLength(string value, int length) => WriteStringFixedLength(value, length, ' ');
@@ -390,7 +392,7 @@ namespace System.IO.Endian
         /// </summary>
         /// <remarks>
         /// If the string is shorter than the specified length it will be padded using the specified character.
-        /// If the string is longer than the specified length it will be truncated.
+        /// <br/>If the string is longer than the specified length it will be truncated.
         /// </remarks>
         /// <param name="value">The string value to write.</param>
         /// <param name="length">The number of characters to write.</param>
@@ -644,7 +646,7 @@ namespace System.IO.Endian
         /// </summary>
         /// <remarks>
         /// The type being written must have a public parameterless constructor.
-        /// Each property to be written must have public get/set methods and
+        /// <br/>Each property to be written must have public get/set methods and
         /// must have at least the <seealso cref="OffsetAttribute"/> attribute applied.
         /// </remarks>
         /// <param name="value">The object to write.</param>
@@ -684,9 +686,10 @@ namespace System.IO.Endian
         /// <param name="value">The object to write.</param>
         /// <param name="version">
         /// The version that should be used to store the object.
-        /// This determines which properties will be written, how they will be
+        /// <br/>This determines which properties will be written, how they will be
         /// written and at what location in the stream to write them to.
         /// </param>
+        /// <exception cref="ArgumentNullException" />
         protected virtual void WriteObjectGeneric<T>(T value, double? version)
         {
             ArgumentNullException.ThrowIfNull(value);
@@ -714,11 +717,14 @@ namespace System.IO.Endian
         /// <param name="byteOrder">The byte order to use.</param>
         /// <remarks>
         /// Bufferable types are expected to be a contiguous span of bytes containing all data required to instanciate the type.
-        /// All relevant properties of the type must be serialized during <see cref="IBufferable.WriteToBuffer(Span{byte})"/>.
+        /// <br/>All relevant properties of the type must be serialized during <see cref="IBufferable.WriteToBuffer(Span{byte})"/>.
         /// <see cref="OffsetAttribute"/> and other related attributes will be ignored.
         /// </remarks>
+        /// <exception cref="ArgumentNullException" />
         public void WriteBufferable<T>(T value, ByteOrder byteOrder) where T : IBufferable
         {
+            ArgumentNullException.ThrowIfNull(value);
+
             var buffer = new byte[T.SizeOf];
             value.WriteToBuffer(buffer);
 
