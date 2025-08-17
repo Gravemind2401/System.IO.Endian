@@ -105,7 +105,7 @@ namespace System.IO.Endian.Dynamic
             }
             else
             {
-                if (length > 0 && value?.Length > length)
+                if (length > 0 && value.Length > length)
                     value = value[..length];
                 writer.WriteStringNullTerminated(value);
             }

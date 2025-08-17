@@ -111,9 +111,9 @@ namespace System.IO.Endian
             ByteOrder = parent.ByteOrder;
         }
 
-        private static Stream BaseStreamOrThrow(EndianWriter parent) => parent?.BaseStream ?? throw new ArgumentNullException(nameof(parent));
+        private static Stream BaseStreamOrThrow(EndianWriter? parent) => parent?.BaseStream ?? throw new ArgumentNullException(nameof(parent));
 
-        private static Encoding EncodingOrThrow(EndianWriter parent) => parent?.encoding ?? throw new ArgumentNullException(nameof(parent));
+        private static Encoding EncodingOrThrow(EndianWriter? parent) => parent?.encoding ?? throw new ArgumentNullException(nameof(parent));
 
         #endregion
 
@@ -676,7 +676,7 @@ namespace System.IO.Endian
         protected void InvokeWriteObject(object value, double? version)
         {
             DynamicWriteMethod.MakeGenericMethod(value.GetType())
-                .Invoke(this, new object[] { value, version });
+                .Invoke(this, new object?[] { value, version });
         }
 
         /// <summary>

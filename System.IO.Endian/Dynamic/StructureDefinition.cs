@@ -22,6 +22,9 @@ namespace System.IO.Endian.Dynamic
             Task.Run(() =>
             {
                 var dir = Path.GetDirectoryName(typeof(StructureDefinition).Assembly.Location);
+                if (dir == null)
+                    return;
+
                 dir = Path.Combine(dir, "StructureDefinitions");
                 Directory.CreateDirectory(dir);
 
@@ -44,13 +47,13 @@ namespace System.IO.Endian.Dynamic
                             ? (v.MinVersionDisplay ?? "..") + (v.MaxVersionDisplay ?? "..")
                             : "default";
 
-                    var node = JsonSerializer.SerializeToNode(new
+                    var node = (JsonObject)JsonSerializer.SerializeToNode(new
                     {
                         v.ByteOrder,
                         FixedSize = v.Size,
                         VersionField = v.VersionField?.TargetProperty.Name,
                         DataLengthField = v.DataLengthField?.TargetProperty.Name
-                    }, options) as JsonObject;
+                    }, options)!;
 
                     var fields = from f in v.Fields
                                  let props = new
@@ -61,7 +64,7 @@ namespace System.IO.Endian.Dynamic
                                  }
                                  orderby f.Offset
                                  group props by f.Offset into g
-                                 select new KeyValuePair<string, JsonNode>(g.Key.ToString(), JsonSerializer.SerializeToNode(g, options));
+                                 select new KeyValuePair<string, JsonNode>(g.Key.ToString(), JsonSerializer.SerializeToNode(g, options)!);
 
                     node.Add(nameof(v.Fields), new JsonObject(fields));
                     json.Add(name, node);
@@ -206,8 +209,7 @@ namespace System.IO.Endian.Dynamic
 
             foreach (var (prop, attributes) in propAttributes)
             {
-                if (prop.GetGetMethod() == null || prop.GetSetMethod() == null)
-                    throw Exceptions.NonPublicGetSet(prop);
+                Exceptions.ThrowIfNotPublicGetSet(prop);
 
                 foreach (var g in attributes.OfType<IVersionAttribute>().GroupBy(a => a.GetType()))
                 {
@@ -339,14 +341,14 @@ namespace System.IO.Endian.Dynamic
             #region IVersionDefinition
 
             IEnumerable<IFieldDefinition> IVersionDefinition.Fields => Fields;
-            IFieldDefinition IVersionDefinition.VersionField => VersionField;
-            IFieldDefinition IVersionDefinition.DataLengthField => DataLengthField;
+            IFieldDefinition? IVersionDefinition.VersionField => VersionField;
+            IFieldDefinition? IVersionDefinition.DataLengthField => DataLengthField;
 
             #endregion
 
             private readonly List<FieldDefinition<TClass>> fields = new();
-            private readonly string minVersionDisplay;
-            private readonly string maxVersionDisplay;
+            private readonly string? minVersionDisplay;
+            private readonly string? maxVersionDisplay;
 
             public IReadOnlyList<FieldDefinition<TClass>> Fields { get; }
             public double? MinVersion { get; }
@@ -354,13 +356,13 @@ namespace System.IO.Endian.Dynamic
             public ByteOrder? ByteOrder { get; }
             public long? Size { get; }
 
-            public string MinVersionDisplay => minVersionDisplay ?? MinVersion?.ToString();
-            public string MaxVersionDisplay => maxVersionDisplay ?? MaxVersion?.ToString();
+            public string? MinVersionDisplay => minVersionDisplay ?? MinVersion?.ToString();
+            public string? MaxVersionDisplay => maxVersionDisplay ?? MaxVersion?.ToString();
 
-            public FieldDefinition<TClass> VersionField { get; private set; }
-            public FieldDefinition<TClass> DataLengthField { get; private set; }
+            public FieldDefinition<TClass>? VersionField { get; private set; }
+            public FieldDefinition<TClass>? DataLengthField { get; private set; }
 
-            public VersionDefinition(double? minVersion, double? maxVersion, ByteOrder? byteOrder, long? size, string minVersionDisplay = null, string maxVersionDisplay = null)
+            public VersionDefinition(double? minVersion, double? maxVersion, ByteOrder? byteOrder, long? size, string? minVersionDisplay = null, string? maxVersionDisplay = null)
             {
                 fields = new();
                 Fields = fields.AsReadOnly();
@@ -397,7 +399,7 @@ namespace System.IO.Endian.Dynamic
                     fields.Add(definition);
             }
 
-            private string GetDebuggerDisplay() => MinVersion.HasValue || MaxVersion.HasValue ? new { Min = MinVersionDisplay, Max = MaxVersionDisplay }.ToString() : "{Default}";
+            private string GetDebuggerDisplay() => MinVersion.HasValue || MaxVersion.HasValue ? new { Min = MinVersionDisplay, Max = MaxVersionDisplay }.ToString()! : "{Default}";
         }
     }
 }

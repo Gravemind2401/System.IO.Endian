@@ -12,7 +12,7 @@
             return source.Any(a => ValidateVersion(a, version));
         }
 
-        public static T GetVersion<T>(this IEnumerable<T> source, double? version) where T : IVersionAttribute
+        public static T? GetVersion<T>(this IEnumerable<T> source, double? version) where T : IVersionAttribute
         {
             return source.OrderByDescending(a => a.IsVersioned)
                 .FirstOrDefault(a => ValidateVersion(a, version));

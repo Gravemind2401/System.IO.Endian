@@ -49,8 +49,8 @@ namespace System.IO.Endian.Dynamic
             private readonly double? minVersion;
             private readonly double? maxVersion;
 
-            private readonly string minVersionDisplay;
-            private readonly string maxVersionDisplay;
+            private readonly string? minVersionDisplay;
+            private readonly string? maxVersionDisplay;
 
             private ByteOrder? byteOrder;
             private int? size;
@@ -96,6 +96,8 @@ namespace System.IO.Endian.Dynamic
             public PrimitiveFieldBuilder Property<TProperty>(Expression<Func<TClass, TProperty>> propertyExpression)
             {
                 var property = Utils.PropertyFromExpression(propertyExpression);
+                Exceptions.ThrowIfNotPublicGetSet(property);
+
                 if (!fields.TryGetValue(property, out var map))
                     fields.Add(property, map = new PrimitiveFieldBuilder(property));
                 return (PrimitiveFieldBuilder)map;
@@ -167,7 +169,7 @@ namespace System.IO.Endian.Dynamic
 
         public sealed class PrimitiveFieldBuilder : FieldBuilderBase<PrimitiveFieldBuilder>
         {
-            private Type storeType;
+            private Type? storeType;
             private bool isVersionNumber;
             private bool isDataLength;
 
@@ -234,10 +236,10 @@ namespace System.IO.Endian.Dynamic
                 //rather than make a generic class and find the constructor, its easier to just forward it to the methods below so they can use the generic type params.
                 var methodName = DelegateHelper.IsTypeSupported(storeType) ? nameof(CreatePrimitive) : nameof(CreateDynamic);
                 var methodInfo = GetType()
-                    .GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic)
+                    .GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic)!
                     .MakeGenericMethod(storeType);
 
-                return (FieldDefinition<TClass>)methodInfo.Invoke(this, new object[] { TargetProperty, Offset.GetValueOrDefault(), ByteOrder });
+                return (FieldDefinition<TClass>)methodInfo.Invoke(this, new object?[] { TargetProperty, Offset.GetValueOrDefault(), ByteOrder })!;
             }
 
             private FieldDefinition<TClass> CreatePrimitive<TField>(PropertyInfo targetProperty, long offset, ByteOrder? byteOrder)

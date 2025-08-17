@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>net7.0</TargetFramework>
-    <Nullable>disable</Nullable>
+    <Nullable>enable</Nullable>
     <SignAssembly>true</SignAssembly>
     <Authors>Gravemind2401</Authors>
     <Copyright>Copyright © $(Authors) 2018 - $([System.DateTime]::Now.Year)</Copyright>

@@ -109,9 +109,9 @@ namespace System.IO.Endian
             ByteOrder = parent.ByteOrder;
         }
 
-        private static Stream BaseStreamOrThrow(EndianReader parent) => parent?.BaseStream ?? throw new ArgumentNullException(nameof(parent));
+        private static Stream BaseStreamOrThrow(EndianReader? parent) => parent?.BaseStream ?? throw new ArgumentNullException(nameof(parent));
 
-        private static Encoding EncodingOrThrow(EndianReader parent) => parent?.encoding ?? throw new ArgumentNullException(nameof(parent));
+        private static Encoding EncodingOrThrow(EndianReader? parent) => parent?.encoding ?? throw new ArgumentNullException(nameof(parent));
 
         #endregion
 
@@ -862,7 +862,7 @@ namespace System.IO.Endian
             .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
             .First(m => m.Name == nameof(PopulateObject) && m.IsGenericMethodDefinition);
 
-        private object InvokePopulateObject(object instance, Type type, double? version)
+        private object InvokePopulateObject(object? instance, Type type, double? version)
         {
             //take note of origin before creating instance in case a derived class moves the stream.
             //this is important for attributes like FixedSizeAttribute to ensure the final position is correct.
@@ -870,7 +870,7 @@ namespace System.IO.Endian
 
             instance ??= InvokeCreateInstance(type, version);
             return PopulateMethod.MakeGenericMethod(type)
-                .Invoke(this, new object[] { instance, version, origin });
+                .Invoke(this, new object?[] { instance, version, origin })!;
         }
 
         private T PopulateNewObject<T>(double? version)
@@ -919,7 +919,7 @@ namespace System.IO.Endian
         private object InvokeCreateInstance(Type type, double? version)
         {
             return CreateInstanceMethod.MakeGenericMethod(type)
-                .Invoke(this, new object[] { version });
+                .Invoke(this, new object?[] { version })!;
         }
 
         private T CreateInstanceInternal<T>(double? version = default)

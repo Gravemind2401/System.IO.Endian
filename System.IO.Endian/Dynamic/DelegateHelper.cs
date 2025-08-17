@@ -6,13 +6,13 @@ namespace System.IO.Endian.Dynamic
     internal static class DelegateHelper
     {
         private static readonly MethodInfo GenericTypeCheckMethod = typeof(DelegateHelper)
-            .GetMethod(nameof(IsTypeSupported), BindingFlags.Static | BindingFlags.Public, Type.EmptyTypes);
+            .GetMethod(nameof(IsTypeSupported), BindingFlags.Static | BindingFlags.Public, Type.EmptyTypes)!;
 
         public static bool IsTypeSupported(Type type)
         {
             return (bool)GenericTypeCheckMethod
                 .MakeGenericMethod(type)
-                .Invoke(null, null);
+                .Invoke(null, null)!;
         }
 
         public static bool IsTypeSupported<TStruct>()
@@ -37,10 +37,10 @@ namespace System.IO.Endian.Dynamic
         public delegate void ByteOrderWriteMethod(EndianWriter writer, TStruct value, ByteOrder byteOrder);
 
         public static readonly DefaultReadMethod InvokeDefaultRead;
-        public static readonly ByteOrderReadMethod InvokeByteOrderRead;
+        public static readonly ByteOrderReadMethod? InvokeByteOrderRead;
 
         public static readonly DefaultWriteMethod InvokeDefaultWrite;
-        public static readonly ByteOrderWriteMethod InvokeByteOrderWrite;
+        public static readonly ByteOrderWriteMethod? InvokeByteOrderWrite;
 
         static DelegateHelper()
         {

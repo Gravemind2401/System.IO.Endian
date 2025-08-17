@@ -107,11 +107,11 @@ namespace System.IO.Endian
                 return size.Value;
 
             var method = typeof(FixedSizeAttribute)
-                .GetMethod(nameof(ValueFromStructureDefinition), BindingFlags.Static | BindingFlags.NonPublic)
+                .GetMethod(nameof(ValueFromStructureDefinition), BindingFlags.Static | BindingFlags.NonPublic)!
                 .GetGenericMethodDefinition()
                 .MakeGenericMethod(type);
 
-            size = (long?)method.Invoke(null, new object[] { version });
+            size = (long?)method.Invoke(null, new object?[] { version });
             return size ?? throw new InvalidOperationException($"No {nameof(FixedSizeAttribute)} defined for the specified version");
         }
 
@@ -280,11 +280,11 @@ namespace System.IO.Endian
                 return offset.Value;
 
             var method = typeof(OffsetAttribute)
-                .GetMethod(nameof(ValueFromStructureDefinition), BindingFlags.Static | BindingFlags.NonPublic)
+                .GetMethod(nameof(ValueFromStructureDefinition), BindingFlags.Static | BindingFlags.NonPublic)!
                 .GetGenericMethodDefinition()
-                .MakeGenericMethod(prop.DeclaringType);
+                .MakeGenericMethod(prop.DeclaringType!);
 
-            offset = (long?)method.Invoke(null, new object[] { prop, version });
+            offset = (long?)method.Invoke(null, new object?[] { prop, version });
             return offset ?? throw new InvalidOperationException($"No {nameof(OffsetAttribute)} defined for the specified version");
         }
 

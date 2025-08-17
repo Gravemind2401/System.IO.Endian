@@ -7,7 +7,7 @@ namespace System.IO.Endian
 {
     internal static class Utils
     {
-        public static string CurrentCulture(FormattableString formattable) => formattable?.ToString(CultureInfo.CurrentCulture) ?? throw new ArgumentNullException(nameof(formattable));
+        public static string CurrentCulture(FormattableString? formattable) => formattable?.ToString(CultureInfo.CurrentCulture) ?? throw new ArgumentNullException(nameof(formattable));
 
         public static Type GetUnderlyingType(Type type)
         {
@@ -20,26 +20,27 @@ namespace System.IO.Endian
             return type;
         }
 
-        public static bool TryConvert(ref object value, Type fromType, Type toType)
+        public static bool TryConvert(ref object? value, Type toType)
         {
-            if (value?.GetType() == toType)
+            var targetIsNullableStruct = toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(Nullable<>);
+
+            if (value == null)
+                return targetIsNullableStruct || !toType.IsValueType;
+
+            var fromType = value.GetType();
+            if (fromType == toType)
                 return true;
 
             if (fromType.IsEnum)
             {
                 fromType = fromType.GetEnumUnderlyingType();
-                value = Convert.ChangeType(value, fromType);
+                value = Convert.ChangeType(value, fromType)!;
             }
 
-            if (toType.IsEnum)
-                toType = toType.GetEnumUnderlyingType();
+            toType = GetUnderlyingType(toType);
 
-            if (toType.IsGenericType && toType.GetGenericTypeDefinition() == typeof(Nullable<>))
-            {
-                var nullableType = toType.GetGenericArguments().Single();
-                if (TryConvert(ref value, fromType, nullableType))
-                    fromType = nullableType;
-            }
+            if (fromType == toType)
+                return true;
 
             var converter = TypeDescriptor.GetConverter(fromType);
             if (converter.CanConvertTo(toType))
@@ -68,7 +69,7 @@ namespace System.IO.Endian
             var propInfo = member.Member as PropertyInfo
                 ?? throw new ArgumentException("Expression does not refer to a property");
 
-            if (type != propInfo.ReflectedType && !type.IsSubclassOf(propInfo.ReflectedType))
+            if (type != propInfo.ReflectedType && !type.IsSubclassOf(propInfo.ReflectedType!))
                 throw new ArgumentException("Property does not belong to type");
 
             return propInfo;
