@@ -369,8 +369,7 @@ namespace System.IO.Endian
         /// <exception cref="ObjectDisposedException"/>
         public virtual string ReadString(int length, bool trim)
         {
-            if (length < 0)
-                throw Exceptions.ParamMustBeNonNegative(length);
+            Exceptions.ThrowIfNotZeroOrPositive(length);
 
             if (length == 0)
                 return string.Empty;
@@ -408,8 +407,7 @@ namespace System.IO.Endian
         /// <exception cref="ObjectDisposedException"/>
         public virtual string ReadNullTerminatedString(int maxLength)
         {
-            if (maxLength < 0)
-                throw Exceptions.ParamMustBeNonNegative(maxLength);
+            Exceptions.ThrowIfNotZeroOrPositive(maxLength);
 
             if (maxLength == 0)
                 return string.Empty;
@@ -706,8 +704,7 @@ namespace System.IO.Endian
         /// <inheritdoc cref="ReadEnumerable{T}(int, double)"/>
         public IEnumerable<T> ReadEnumerable<T>(int count)
         {
-            if (count < 0)
-                throw Exceptions.ParamMustBeNonNegative(count);
+            Exceptions.ThrowIfNotZeroOrPositive(count);
 
             var i = 0;
             while (i++ < count && BaseStream.Position < BaseStream.Length)
@@ -723,8 +720,7 @@ namespace System.IO.Endian
         /// <inheritdoc cref="ReadObject{T}(double)"/>
         public IEnumerable<T> ReadEnumerable<T>(int count, double version)
         {
-            if (count < 0)
-                throw Exceptions.ParamMustBeNonNegative(count);
+            Exceptions.ThrowIfNotZeroOrPositive(count);
 
             var i = 0;
             while (i++ < count && BaseStream.Position < BaseStream.Length)
@@ -745,8 +741,7 @@ namespace System.IO.Endian
 
         private T[] ReadArrayInternal<T>(int count, double? version)
         {
-            if (count < 0)
-                throw Exceptions.ParamMustBeNonNegative(count);
+            Exceptions.ThrowIfNotZeroOrPositive(count);
 
             var result = new T[count];
             for (var i = 0; i < count; i++)
@@ -769,8 +764,7 @@ namespace System.IO.Endian
 
         private List<T> ReadListInternal<T>(int count, double? version)
         {
-            if (count < 0)
-                throw Exceptions.ParamMustBeNonNegative(count);
+            Exceptions.ThrowIfNotZeroOrPositive(count);
 
             var result = new List<T>(count);
             for (var i = 0; i < count; i++)

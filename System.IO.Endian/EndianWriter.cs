@@ -401,9 +401,7 @@ namespace System.IO.Endian
         public virtual void WriteStringFixedLength(string value, int length, char padding)
         {
             ArgumentNullException.ThrowIfNull(value);
-
-            if (length < 0)
-                throw Exceptions.ParamMustBeNonNegative(length);
+            Exceptions.ThrowIfNotZeroOrPositive(length);
 
             if (length == 0)
                 return;
@@ -540,9 +538,9 @@ namespace System.IO.Endian
         /// <param name="length">The number of bytes to insert.</param>
         public void Insert(byte pad, int length)
         {
-            if (length < 0)
-                throw Exceptions.ParamMustBeNonNegative(length);
-            else if (length == 0)
+            Exceptions.ThrowIfNotZeroOrPositive(length);
+
+            if (length == 0)
                 return;
 
             var source = BaseStream.Position;
@@ -563,9 +561,9 @@ namespace System.IO.Endian
         /// <param name="length">The number of bytes to insert.</param>
         public void Fill(byte pad, int length)
         {
-            if (length < 0)
-                throw Exceptions.ParamMustBeNonNegative(length);
-            else if (length == 0)
+            Exceptions.ThrowIfNotZeroOrPositive(length);
+
+            if (length == 0)
                 return;
 
             var buffer = new byte[length];
@@ -588,14 +586,9 @@ namespace System.IO.Endian
         /// <param name="length">The number of bytes to copy.</param>
         public void Copy(long sourceAddress, long destinationAddress, int length)
         {
-            if (sourceAddress <= 0)
-                throw Exceptions.ParamMustBePositive(sourceAddress);
-
-            if (destinationAddress <= 0)
-                throw Exceptions.ParamMustBePositive(destinationAddress);
-
-            if (length <= 0)
-                throw Exceptions.ParamMustBePositive(length);
+            Exceptions.ThrowIfNotPositive(sourceAddress);
+            Exceptions.ThrowIfNotPositive(destinationAddress);
+            Exceptions.ThrowIfNotPositive(length);
 
             const int blockSize = 0x10000;
             var origin = BaseStream.Position;

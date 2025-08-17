@@ -235,9 +235,7 @@ namespace System.IO.Endian
         /// <exception cref="ArgumentOutOfRangeException"/>
         public OffsetAttribute(long offset)
         {
-            if (offset < 0)
-                throw Exceptions.ParamMustBeNonNegative(offset);
-
+            Exceptions.ThrowIfNotZeroOrPositive(offset);
             Offset = offset;
         }
 
@@ -459,8 +457,7 @@ namespace System.IO.Endian
         /// <exception cref="ArgumentOutOfRangeException"/>
         public FixedLengthAttribute(int length)
         {
-            if (length <= 0)
-                throw Exceptions.ParamMustBePositive(length);
+            Exceptions.ThrowIfNotPositive(length);
 
             Length = length;
             Padding = ' ';

@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace System.IO.Endian
@@ -7,21 +8,28 @@ namespace System.IO.Endian
     {
         #region Generic Errors
 
+        /// <summary>
+        /// Throws an exception if <paramref name="paramValue"/> is not greater than zero.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        [DebuggerHidden]
         public static void ThrowIfNotPositive<T>(T paramValue, [CallerArgumentExpression(nameof(paramValue))] string paramName = null)
             where T : System.Numerics.INumber<T>
         {
             if (!T.IsPositive(paramValue))
-                throw ParamMustBePositive(paramValue, paramName);
+                throw new ArgumentOutOfRangeException(paramName, paramValue, Utils.CurrentCulture($"The '{paramName}' value must be greater than zero."));
         }
 
-        public static ArgumentOutOfRangeException ParamMustBePositive(object paramValue, [CallerArgumentExpression(nameof(paramValue))] string paramName = null)
+        /// <summary>
+        /// Throws an exception if <paramref name="paramValue"/> is not greater than or equal to zero.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        [DebuggerHidden]
+        public static void ThrowIfNotZeroOrPositive<T>(T paramValue, [CallerArgumentExpression(nameof(paramValue))] string paramName = null)
+            where T : System.Numerics.INumber<T>
         {
-            return new ArgumentOutOfRangeException(paramName, paramValue, Utils.CurrentCulture($"The {paramName} value must be greater than zero."));
-        }
-
-        public static ArgumentOutOfRangeException ParamMustBeNonNegative(object paramValue, [CallerArgumentExpression(nameof(paramValue))] string paramName = null)
-        {
-            return new ArgumentOutOfRangeException(paramName, paramValue, Utils.CurrentCulture($"The {paramName} value must be non-negative."));
+            if (!(T.IsPositive(paramValue) || T.IsZero(paramValue)))
+                throw new ArgumentOutOfRangeException(paramName, paramValue, Utils.CurrentCulture($"The '{paramName}' value must be greater than or equal to zero."));
         }
 
         public static ArgumentOutOfRangeException BoundaryOverlapMinimum(string minValue, string maxValue) => new ArgumentOutOfRangeException(Utils.CurrentCulture($"{minValue} cannot be greater than {maxValue}."));
