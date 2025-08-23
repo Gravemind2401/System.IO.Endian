@@ -730,14 +730,15 @@ namespace System.IO.Endian
         }
 
         /// <summary>
-        /// Populates a fixed length array using the result of <seealso cref="ReadObject{T}"/> for index of the array.
+        /// Populates a fixed length array using the result of <seealso cref="ReadObject{T}"/> for each index of the array.
         /// </summary>
-        /// <inheritdoc cref="ReadEnumerable{T}(int)"/>
+        /// <inheritdoc cref="ReadArray{T}(int, double)"/>
         public T[] ReadArray<T>(int count) => ReadArrayInternal<T>(count, null);
 
         /// <summary>
-        /// Populates a fixed length array using the result of <seealso cref="ReadObject{T}(double)"/> for index of the array.
+        /// Populates a fixed length array using the result of <seealso cref="ReadObject{T}(double)"/> for each index of the array.
         /// </summary>
+        /// <param name="count">The number of objects to read.</param>
         /// <inheritdoc cref="ReadEnumerable{T}(int, double)"/>
         public T[] ReadArray<T>(int count, double version) => ReadArrayInternal<T>(count, version);
 
@@ -766,13 +767,13 @@ namespace System.IO.Endian
         /// <summary>
         /// Populates a list of <paramref name="count"/> capacity using the result of <seealso cref="ReadObject{T}"/> for each element.
         /// </summary>
-        /// <inheritdoc cref="ReadEnumerable{T}(int)"/>
+        /// <inheritdoc cref="ReadArray{T}(int)"/>
         public List<T> ReadList<T>(int count) => ReadListInternal<T>(count, null);
 
         /// <summary>
         /// Populates a list of <paramref name="count"/> capacity using the result of <seealso cref="ReadObject{T}(double)"/> for each element.
         /// </summary>
-        /// <inheritdoc cref="ReadEnumerable{T}(int, double)"/>
+        /// <inheritdoc cref="ReadArray{T}(int, double)"/>
         public List<T> ReadList<T>(int count, double version) => ReadListInternal<T>(count, version);
 
         private List<T> ReadListInternal<T>(int count, double? version)
