@@ -2,6 +2,6 @@
 {
     public interface IStreamableObject
     {
-        void PopulateFromStream(EndianReader reader);
+        void PopulateFromStream(EndianReader reader, double? version);
     }
 }

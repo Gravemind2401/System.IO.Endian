@@ -101,15 +101,15 @@ namespace System.IO.Endian.SourceGenerator
                     continue;
                 }
 
-                if (attributeNameSpan.SequenceEqual("InternedAttribute"))
-                {
-                    hasInternedAttribute = true;
-                    continue;
-                }
-
                 if (attributeNameSpan.SequenceEqual("LengthPrefixedAttribute"))
                 {
                     hasLengthPrefixedAttribute = true;
+                    continue;
+                }
+
+                if (attributeNameSpan.SequenceEqual("InternedAttribute"))
+                {
+                    hasInternedAttribute = true;
                     continue;
                 }
             }

@@ -120,7 +120,8 @@ namespace System.IO.Endian.SourceGenerator
             var methodDec = SyntaxFactory.MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), InterfaceReadMethod)
                 .WithExplicitInterfaceSpecifier(SyntaxFactory.ExplicitInterfaceSpecifier(SyntaxFactory.IdentifierName(TargetInterface)))
                 .AddParameterListParameters(
-                    SyntaxFactory.Parameter(SyntaxFactory.Identifier("reader")).WithType(SyntaxFactory.IdentifierName("global::System.IO.Endian.EndianReader"))
+                    SyntaxFactory.Parameter(SyntaxFactory.Identifier("reader")).WithType(SyntaxFactory.IdentifierName("global::System.IO.Endian.EndianReader")),
+                    SyntaxFactory.Parameter(SyntaxFactory.Identifier("version")).WithType(SyntaxFactory.IdentifierName("double?"))
                 )
                 .WithBody(SyntaxFactory.Block(EnumerateReadStatements().ToArray()));
 
@@ -275,7 +276,14 @@ namespace System.IO.Endian.SourceGenerator
                 var builder = ImmutableArray.CreateBuilder<StatementSyntax>();
                 var byteOrderAttribute = ByteOrderAttributes.FirstOrDefault(o => o.ValidForVersion(version));
 
-                foreach (var property in Properties)
+                //always read in order of offset so the final position is at the end of the highest property
+                var sorted = from p in Properties
+                             let offsetAttribute = p.OffsetAttributes.FirstOrDefault(o => o.ValidForVersion(version))
+                             where offsetAttribute != null
+                             orderby offsetAttribute.Offset
+                             select p;
+
+                foreach (var property in sorted)
                     property.AddStatementsForVersion(builder, version, (ByteOrder?)byteOrderAttribute?.ByteOrder);
 
                 var fixedSizeAttribute = FixedSizeAttributes.FirstOrDefault(o => o.ValidForVersion(version));
