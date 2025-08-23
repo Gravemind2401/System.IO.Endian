@@ -543,4 +543,10 @@ namespace System.IO.Endian
     {
         internal override StructureDefinition<TSelf> GetStructureDefinition() => new TBuilder().ToStructureDefinition();
     }
+
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
+    public sealed class StreamableObjectAttribute : Attribute
+    {
+        //marker attribute for source generator
+    }
 }
