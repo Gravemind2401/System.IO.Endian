@@ -22,7 +22,7 @@ namespace System.IO.Endian.Dynamic
             return (typeCode >= TypeCode.Boolean && typeCode <= TypeCode.Decimal)
                 || typeof(TStruct) == typeof(Half)
                 || typeof(TStruct) == typeof(Guid)
-                || default(TStruct) is IBufferable<TStruct>;
+                || typeof(TStruct).IsAssignableTo(typeof(IBufferable<TStruct>));
         }
     }
 
@@ -44,7 +44,7 @@ namespace System.IO.Endian.Dynamic
 
         static DelegateHelper()
         {
-            if (default(TStruct) is IBufferable<TStruct>)
+            if (typeof(TStruct).IsAssignableTo(typeof(IBufferable<TStruct>)))
             {
                 var methods = typeof(EndianReader).GetMethods();
 
