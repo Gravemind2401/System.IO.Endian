@@ -745,9 +745,20 @@ namespace System.IO.Endian
         {
             Exceptions.ThrowIfNotZeroOrPositive(count);
 
+            if (count == 0)
+                return Array.Empty<T>();
+
             var result = new T[count];
-            for (var i = 0; i < count; i++)
-                result[i] = version.HasValue ? ReadObject<T>(version.Value) : ReadObject<T>();
+            if (DelegateHelper.IsTypeSupported<T>())
+            {
+                for (var i = 0; i < count; i++)
+                    result[i] = DelegateHelper<T>.InvokeDefaultRead(this);
+            }
+            else
+            {
+                for (var i = 0; i < count; i++)
+                    result[i] = version.HasValue ? ReadObject<T>(version.Value) : ReadObject<T>();
+            }
 
             return result;
         }
@@ -769,8 +780,16 @@ namespace System.IO.Endian
             Exceptions.ThrowIfNotZeroOrPositive(count);
 
             var result = new List<T>(count);
-            for (var i = 0; i < count; i++)
-                result.Add(version.HasValue ? ReadObject<T>(version.Value) : ReadObject<T>());
+            if (DelegateHelper.IsTypeSupported<T>())
+            {
+                for (var i = 0; i < count; i++)
+                    result[i] = DelegateHelper<T>.InvokeDefaultRead(this);
+            }
+            else
+            {
+                for (var i = 0; i < count; i++)
+                    result.Add(version.HasValue ? ReadObject<T>(version.Value) : ReadObject<T>());
+            }
 
             return result;
         }
@@ -839,13 +858,13 @@ namespace System.IO.Endian
         /// Each property to be read must have public get/set methods and
         /// must have at least the <seealso cref="OffsetAttribute"/> attribute applied.
         /// </remarks>
-        /// <returns>The same object that was supplied as the <paramref name="instance"/> parameter.</returns>
         /// <param name="instance">The object to populate.</param>
         /// <param name="version">
         /// The version that was used to store the object.
         /// <br/>This determines which properties will be read, how they will be
         /// read and at what location in the stream to read them from.
         /// </param>
+        /// <returns>The same object that was supplied as the <paramref name="instance"/> parameter.</returns>
         /// <exception cref="AmbiguousMatchException" />
         /// <exception cref="ArgumentException" />
         /// <exception cref="ArgumentNullException" />
@@ -875,6 +894,15 @@ namespace System.IO.Endian
 
         private T PopulateNewObject<T>(double? version)
         {
+            //cannot detect string type automatically (fixed/prefixed/terminated)
+            //check this early rather than CreateInstance only to throw afterwards
+            if (typeof(T).Equals(typeof(string)))
+                throw Exceptions.NotValidForStringTypes();
+
+            //skip calling CreateInstance for known struct types (primitives and IBufferable) because that instance would never get used
+            if (DelegateHelper.IsTypeSupported<T>())
+                return DelegateHelper<T>.InvokeDefaultRead(this);
+
             //take note of origin before creating instance in case a derived class moves the stream.
             //this is important for attributes like FixedSizeAttribute to ensure the final position is correct.
             var origin = Position;
@@ -886,16 +914,20 @@ namespace System.IO.Endian
         /// </summary>
         /// <typeparam name="T">The type of object to read.</typeparam>
         /// <param name="instance">
-        /// The object to populate. This value will never be null.
+        /// The object to populate. This value will never be <see langword="null"/>.
         /// <br/>If no instance was provided, this value will be the result of <see cref="CreateInstance{T}(double?)"/>.
         /// </param>
         /// <param name="version">
         /// The version that was used to store the object.
         /// <br/>This determines which properties will be read, how they will be
         /// read and at what location in the stream to read them from.
-        /// <br/>This value will be null if no version was provided.
+        /// <br/>This value will be <see langword="null"/> if no version was provided.
         /// </param>
         /// <param name="origin">The position of the stream prior to any reading or object instanciation taking place.</param>
+        /// <returns>
+        /// The same object that was supplied as the <paramref name="instance"/> parameter, if one was provided.
+        /// <br/>Otherwise, a new instance of <typeparamref name="T"/> is returned.
+        /// </returns>
         /// <exception cref="ArgumentNullException" />
         protected virtual T PopulateObject<T>(T instance, double? version, long origin)
         {
@@ -943,7 +975,7 @@ namespace System.IO.Endian
         /// <remarks>
         /// Bufferable types are expected to be a contiguous span of bytes containing all data required to instanciate the type.
         /// <br/>All relevant properties of the type must be deserialized during <see cref="IBufferable{TBufferable}.ReadFromBuffer(ReadOnlySpan{byte})"/>.
-        /// <see cref="OffsetAttribute"/> and other related attributes will be ignored.
+        /// <br/><see cref="OffsetAttribute"/> and other related attributes will be ignored.
         /// </remarks>
         public T ReadBufferable<T>(ByteOrder byteOrder) where T : IBufferable<T>
         {
