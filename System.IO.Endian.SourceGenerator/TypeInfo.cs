@@ -121,7 +121,8 @@ namespace System.IO.Endian.SourceGenerator
                 .WithExplicitInterfaceSpecifier(SyntaxFactory.ExplicitInterfaceSpecifier(SyntaxFactory.IdentifierName(TargetInterface)))
                 .AddParameterListParameters(
                     SyntaxFactory.Parameter(SyntaxFactory.Identifier("reader")).WithType(SyntaxFactory.IdentifierName("global::System.IO.Endian.EndianReader")),
-                    SyntaxFactory.Parameter(SyntaxFactory.Identifier("version")).WithType(SyntaxFactory.IdentifierName("double?"))
+                    SyntaxFactory.Parameter(SyntaxFactory.Identifier("version")).WithType(SyntaxFactory.IdentifierName("double?")),
+                    SyntaxFactory.Parameter(SyntaxFactory.Identifier("origin")).WithType(SyntaxFactory.IdentifierName("long"))
                 )
                 .WithBody(SyntaxFactory.Block(EnumerateReadStatements().ToArray()));
 
@@ -131,7 +132,7 @@ namespace System.IO.Endian.SourceGenerator
         public IEnumerable<StatementSyntax> EnumerateReadStatements()
         {
             var baseAddressToken = SyntaxFactory.Identifier("baseAddress");
-            var baseAddressIdentifier = SyntaxFactory.IdentifierName("baseAddress");
+            var baseAddressIdentifier = SyntaxFactory.IdentifierName("origin");
 
             var readerIdentifier = SyntaxFactory.IdentifierName("reader");
             var seekIdentifier = SyntaxFactory.IdentifierName("Seek");
@@ -258,7 +259,7 @@ namespace System.IO.Endian.SourceGenerator
 
             foreach (var (min, max, name) in rangeList)
             {
-                var testValue = min ?? (max!.Value - double.Epsilon);
+                var testValue = min ?? (max!.Value - 1);
                 var body = BuildStatementsForVersion(testValue);
 
                 //void {MethodName}()

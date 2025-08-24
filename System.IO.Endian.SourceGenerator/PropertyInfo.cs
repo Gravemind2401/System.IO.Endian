@@ -129,7 +129,7 @@ namespace System.IO.Endian.SourceGenerator
                 return;
 
             var thisIdentifier = SyntaxFactory.IdentifierName("this");
-            var baseAddressIdentifier = SyntaxFactory.IdentifierName("baseAddress");
+            var baseAddressIdentifier = SyntaxFactory.IdentifierName("origin");
             var readerIdentifier = SyntaxFactory.IdentifierName("reader");
             var seekIdentifier = SyntaxFactory.IdentifierName("Seek");
             var seekOriginBeginExpression = SyntaxFactory.MemberAccessExpression(
