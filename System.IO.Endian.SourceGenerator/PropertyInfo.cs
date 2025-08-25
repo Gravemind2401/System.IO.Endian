@@ -9,6 +9,8 @@ namespace System.IO.Endian.SourceGenerator
 {
     internal sealed record PropertyInfo(
         IPropertySymbol Symbol,
+        ITypeSymbol? UnderlyingType,
+        PropertyKind PropertyKind,
         ImmutableEquatableArray<OffsetAttributeData> OffsetAttributes,
         ImmutableEquatableArray<ByteOrderAttributeData> ByteOrderAttributes,
         ImmutableEquatableArray<StoreTypeAttributeData> StoreTypeAttributes,
@@ -114,12 +116,61 @@ namespace System.IO.Endian.SourceGenerator
                 }
             }
 
+            ITypeSymbol? underlyingType;
+            PropertyKind propertyKind;
+
+            //TODO: if only one storetype and its unversioned then it can be non deferred
+
+            if (storeTypeBuilder.Count > 0)
+                (underlyingType, propertyKind) = (null, PropertyKind.Deferred);
+            else
+                propertyKind = GetPropertyKind(symbol.Type, out underlyingType);
+
+            //TODO: validate string properties here and output diagnostic error if invalid
+
             return new PropertyInfo(
                 symbol,
+                underlyingType,
+                propertyKind,
                 offsetBuilder.ToImmutableEquatableArray(),
                 byteOrderBuilder.ToImmutableEquatableArray(),
                 storeTypeBuilder.ToImmutableEquatableArray(),
                 new StringAttributeInfo(hasInternedAttribute, hasLengthPrefixedAttribute, nullTerminatedAttributeData, fixedLengthAttributeData));
+        }
+
+        private static PropertyKind GetPropertyKind(ITypeSymbol typeSymbol, out ITypeSymbol underlyingType)
+        {
+            underlyingType = typeSymbol;
+
+            if (typeSymbol.TypeKind == TypeKind.Enum)
+                underlyingType = typeSymbol = ((INamedTypeSymbol)typeSymbol).EnumUnderlyingType!;
+
+            var ns = typeSymbol.ContainingNamespace?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            if (ns == "global::System")
+            {
+                if (typeSymbol.Name == "String")
+                    return PropertyKind.String;
+
+                if (typeSymbol.Name == "Nullable")
+                {
+                    underlyingType = typeSymbol = ((INamedTypeSymbol)typeSymbol).TypeArguments[0];
+
+                    //nullable enum types wont enter the first enum check above
+                    if (typeSymbol.TypeKind == TypeKind.Enum)
+                        underlyingType = typeSymbol = ((INamedTypeSymbol)typeSymbol).EnumUnderlyingType!;
+                }
+
+                if (typeSymbol.Name is "SByte" or "Int16" or "Int32" or "Int64"
+                    or "Byte" or "UInt16" or "UInt32" or "UInt64"
+                    or "Half" or "Single" or "Double" or "Decimal"
+                    or "Guid")
+                    return PropertyKind.Primitive;
+            }
+
+            if (typeSymbol.Interfaces.Any(t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).StartsWith(BufferableInterface)))
+                return PropertyKind.Bufferable;
+
+            return PropertyKind.Dynamic;
         }
 
         public void AddStatementsForVersion(ImmutableArray<StatementSyntax>.Builder statementBuilder, double? version, ByteOrder? byteOrder)
@@ -137,12 +188,6 @@ namespace System.IO.Endian.SourceGenerator
                 SyntaxFactory.IdentifierName("global::System.IO.SeekOrigin"),
                 SyntaxFactory.IdentifierName("Begin"));
 
-            var byteOrderAttribute = ByteOrderAttributes.FirstOrDefault(o => o.ValidForVersion(version));
-            if (byteOrderAttribute != null)
-                byteOrder = (ByteOrder)byteOrderAttribute.ByteOrder;
-
-            var storeTypeAttribute = StoreTypeAttributes.FirstOrDefault(o => o.ValidForVersion(version));
-
             //reader.Seek(baseAddress + {Offset}L, SeekOrigin.Begin);
             statementBuilder.Add(SyntaxFactory.ExpressionStatement(
                 SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
@@ -152,16 +197,30 @@ namespace System.IO.Endian.SourceGenerator
                 )).AddArgumentListArguments(SyntaxFactory.Argument(
                     SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, baseAddressIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(offsetAttribute.Offset)))
                 ), SyntaxFactory.Argument(seekOriginBeginExpression)
+            )).WithLeadingTrivia(SyntaxFactory.TriviaList(
+                SyntaxFactory.Comment($"//0x{offsetAttribute.Offset:X2}")
             )));
 
-            var storeType = Symbol.Type;
-            var propertyType = storeType;
+            var byteOrderAttribute = ByteOrderAttributes.FirstOrDefault(o => o.ValidForVersion(version));
+            if (byteOrderAttribute != null)
+                byteOrder = (ByteOrder)byteOrderAttribute.ByteOrder;
 
-            if (storeTypeAttribute != null)
-                storeType = storeTypeAttribute.StoreType;
+            var byteOrderArgument = byteOrder.HasValue
+                ? SyntaxFactory.Argument(SyntaxFactory.MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        SyntaxFactory.IdentifierName("System.IO.Endian.ByteOrder"),
+                        SyntaxFactory.IdentifierName(byteOrder.Value.ToString())
+                    ))
+                : null;
 
-            if (storeType.TypeKind == TypeKind.Enum && storeType is INamedTypeSymbol namedTypeSymbol)
-                storeType = namedTypeSymbol.EnumUnderlyingType!;
+            var (storeType, propertyKind) = (UnderlyingType, PropertyKind);
+            if (storeType == null)
+            {
+                var storeTypeAttribute = StoreTypeAttributes.FirstOrDefault(o => o.ValidForVersion(version));
+                storeType = storeTypeAttribute?.StoreType ?? Symbol.Type;
+
+                propertyKind = GetPropertyKind(storeType, out storeType);
+            }
 
             //since FullyQualifiedDisplayFormat doesnt expand nullables to Nullable<T>, it will just end with a ? instead.
             //since nullables allow implicit casts from non-nullable values, we dont need to do anything about the type difference.
@@ -170,11 +229,7 @@ namespace System.IO.Endian.SourceGenerator
             string readMethodName;
             ArgumentSyntax[] readArgs;
 
-            //TODO: output as diagnostics
-            if (typeName == "System.String" && !StringAttributes.IsValid)
-                throw new InvalidOperationException("String property has invalid string attributes!");
-
-            if (typeName == "System.String" && !StringAttributes.IsLengthPrefixed)
+            if (propertyKind == PropertyKind.String && !StringAttributes.IsLengthPrefixed)
             {
                 if (StringAttributes.FixedLengthAttributeData != null)
                 {
@@ -204,22 +259,20 @@ namespace System.IO.Endian.SourceGenerator
                     }
                 }
             }
-            else if (typeName is "System.SByte" or "System.Int16" or "System.Int32" or "System.Int64"
-                or "System.Byte" or "System.UInt16" or "System.UInt32" or "System.UInt64"
-                or "System.Half" or "System.Single" or "System.Double" or "System.Decimal"
-                or "System.Guid" or "System.String")
+            else if (propertyKind is PropertyKind.Primitive or PropertyKind.String)
             {
                 readMethodName = "Read" + typeName.Substring("System.".Length);
 
                 readArgs = byteOrder.HasValue ? new ArgumentSyntax[1] : Array.Empty<ArgumentSyntax>();
                 if (byteOrder.HasValue && typeName is not ("System.SByte" or "System.Byte"))
-                {
-                    readArgs[0] = SyntaxFactory.Argument(SyntaxFactory.MemberAccessExpression(
-                        SyntaxKind.SimpleMemberAccessExpression,
-                        SyntaxFactory.IdentifierName("System.IO.Endian.ByteOrder"),
-                        SyntaxFactory.IdentifierName(byteOrder.Value.ToString())
-                    ));
-                }
+                    readArgs[0] = byteOrderArgument!;
+            }
+            else if (propertyKind == PropertyKind.Bufferable)
+            {
+                readMethodName = $"ReadBufferable<{typeName}>";
+                readArgs = byteOrder.HasValue ? new ArgumentSyntax[1] : Array.Empty<ArgumentSyntax>();
+                if (byteOrder.HasValue)
+                    readArgs[0] = byteOrderArgument!;
             }
             else
             {
@@ -241,9 +294,11 @@ namespace System.IO.Endian.SourceGenerator
                     SyntaxFactory.IdentifierName(readMethodName)
                 )).AddArgumentListArguments(readArgs);
 
+            //TODO: no need to cast to nullable
+
             //({PropertyType}){readExpression}
-            if (!SymbolEqualityComparer.Default.Equals(storeType, propertyType))
-                readExpression = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(propertyType.ToDisplayString(FullyQualifiedDisplayFormat)), readExpression);
+            if (!SymbolEqualityComparer.Default.Equals(storeType, Symbol.Type))
+                readExpression = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(Symbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)), readExpression);
 
             //result.{Property} = {readExpression}
             statementBuilder.Add(SyntaxFactory.ExpressionStatement(

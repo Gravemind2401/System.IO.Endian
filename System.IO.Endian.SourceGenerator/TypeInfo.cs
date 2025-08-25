@@ -299,6 +299,8 @@ namespace System.IO.Endian.SourceGenerator
                         )).AddArgumentListArguments(SyntaxFactory.Argument(
                             SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, baseAddressIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(fixedSizeAttribute.Size)))
                         ), SyntaxFactory.Argument(seekOriginBeginExpression)
+                    )).WithLeadingTrivia(SyntaxFactory.TriviaList(
+                        SyntaxFactory.Comment($"//0x{fixedSizeAttribute.Size:X2} (FixedSize)")
                     )));
                 }
 

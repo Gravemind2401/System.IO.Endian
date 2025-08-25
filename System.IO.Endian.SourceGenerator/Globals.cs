@@ -7,6 +7,7 @@ namespace System.IO.Endian.SourceGenerator
         public const string HomeNamespace = "System.IO.Endian";
         public const string MarkerAttribute = $"{HomeNamespace}.StreamableObjectAttribute";
         public const string TargetInterface = $"global::{HomeNamespace}.IStreamableObject";
+        public const string BufferableInterface = $"global::{HomeNamespace}.IBufferable";
         public const string InterfaceReadMethod = "PopulateFromStream";
 
         public static readonly SymbolDisplayFormat FullyQualifiedDisplayFormat
