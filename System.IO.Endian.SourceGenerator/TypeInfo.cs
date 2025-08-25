@@ -282,10 +282,38 @@ namespace System.IO.Endian.SourceGenerator
                              let offsetAttribute = p.OffsetAttributes.FirstOrDefault(o => o.ValidForVersion(version))
                              where offsetAttribute != null
                              orderby offsetAttribute.Offset
-                             select p;
+                             select (p, offsetAttribute);
 
-                foreach (var property in sorted)
-                    property.AddStatementsForVersion(builder, version, (ByteOrder?)byteOrderAttribute?.ByteOrder);
+                long? currentOffset = 0;
+                foreach (var (property, offsetAttribute) in sorted)
+                {
+                    var readStatement = property.GetReadStatementForVersion(version, (ByteOrder?)byteOrderAttribute?.ByteOrder);
+                    var commentTrivia = SyntaxFactory.TriviaList(
+                        SyntaxFactory.Comment($"//{offsetAttribute.Offset} [0x{offsetAttribute.Offset:X2}]")
+                    );
+
+                    if (offsetAttribute.Offset == currentOffset)
+                        readStatement = readStatement.WithLeadingTrivia(commentTrivia);
+                    else
+                    {
+                        //reader.Seek(baseAddress + {Offset}L, SeekOrigin.Begin);
+                        builder.Add(SyntaxFactory.ExpressionStatement(
+                            SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                readerIdentifier,
+                                seekIdentifier
+                            )).AddArgumentListArguments(SyntaxFactory.Argument(
+                                SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, baseAddressIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(offsetAttribute.Offset)))
+                            ), SyntaxFactory.Argument(seekOriginBeginExpression)
+                        )).WithLeadingTrivia(commentTrivia));
+                    }
+
+                    builder.Add(readStatement);
+
+                    currentOffset = property.PropertySize.HasValue
+                        ? offsetAttribute.Offset + property.PropertySize.Value
+                        : null;
+                }
 
                 var fixedSizeAttribute = FixedSizeAttributes.FirstOrDefault(o => o.ValidForVersion(version));
                 if (fixedSizeAttribute != null)
@@ -300,7 +328,7 @@ namespace System.IO.Endian.SourceGenerator
                             SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, baseAddressIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(fixedSizeAttribute.Size)))
                         ), SyntaxFactory.Argument(seekOriginBeginExpression)
                     )).WithLeadingTrivia(SyntaxFactory.TriviaList(
-                        SyntaxFactory.Comment($"//0x{fixedSizeAttribute.Size:X2} (FixedSize)")
+                        SyntaxFactory.Comment($"//{fixedSizeAttribute.Size} [0x{fixedSizeAttribute.Size:X2}] (FixedSize)")
                     )));
                 }
 

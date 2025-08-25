@@ -11,6 +11,7 @@ namespace System.IO.Endian.SourceGenerator
         IPropertySymbol Symbol,
         ITypeSymbol? UnderlyingType,
         PropertyKind PropertyKind,
+        int? PropertySize,
         ImmutableEquatableArray<OffsetAttributeData> OffsetAttributes,
         ImmutableEquatableArray<ByteOrderAttributeData> ByteOrderAttributes,
         ImmutableEquatableArray<StoreTypeAttributeData> StoreTypeAttributes,
@@ -116,31 +117,36 @@ namespace System.IO.Endian.SourceGenerator
                 }
             }
 
+            //TODO: check for attribute version overlap issues here and output diagnostic errors
+            //TODO: validate string properties here and output diagnostic error if invalid
+            //enforce strings cannot have StoreTypeAttribute, StoreTypeAttribute cannot be string
+
             ITypeSymbol? underlyingType;
             PropertyKind propertyKind;
+            int? propertySize;
 
-            //TODO: if only one storetype and its unversioned then it can be non deferred
-
-            if (storeTypeBuilder.Count > 0)
-                (underlyingType, propertyKind) = (null, PropertyKind.Deferred);
+            if (storeTypeBuilder.Count == 0)
+                propertyKind = GetPropertyKind(symbol.Type, out underlyingType, out propertySize);
+            else if (storeTypeBuilder.Count == 1 && !storeTypeBuilder[0].IsVersioned)
+                propertyKind = GetPropertyKind(storeTypeBuilder[0].StoreType, out underlyingType, out propertySize);
             else
-                propertyKind = GetPropertyKind(symbol.Type, out underlyingType);
-
-            //TODO: validate string properties here and output diagnostic error if invalid
+                (underlyingType, propertyKind, propertySize) = (null, PropertyKind.Deferred, null);
 
             return new PropertyInfo(
                 symbol,
                 underlyingType,
                 propertyKind,
+                propertySize,
                 offsetBuilder.ToImmutableEquatableArray(),
                 byteOrderBuilder.ToImmutableEquatableArray(),
                 storeTypeBuilder.ToImmutableEquatableArray(),
                 new StringAttributeInfo(hasInternedAttribute, hasLengthPrefixedAttribute, nullTerminatedAttributeData, fixedLengthAttributeData));
         }
 
-        private static PropertyKind GetPropertyKind(ITypeSymbol typeSymbol, out ITypeSymbol underlyingType)
+        private static PropertyKind GetPropertyKind(ITypeSymbol typeSymbol, out ITypeSymbol underlyingType, out int? propertySize)
         {
             underlyingType = typeSymbol;
+            propertySize = null;
 
             if (typeSymbol.TypeKind == TypeKind.Enum)
                 underlyingType = typeSymbol = ((INamedTypeSymbol)typeSymbol).EnumUnderlyingType!;
@@ -164,7 +170,19 @@ namespace System.IO.Endian.SourceGenerator
                     or "Byte" or "UInt16" or "UInt32" or "UInt64"
                     or "Half" or "Single" or "Double" or "Decimal"
                     or "Guid")
+                {
+                    propertySize = typeSymbol.Name switch
+                    {
+                        "SByte" or "Byte" => 1,
+                        "Int16" or "UInt16" or "Half" => 2,
+                        "Int32" or "UInt32" or "Single" => 4,
+                        "Int64" or "UInt64" or "Double" => 8,
+                        "Decimal" or "Guid" => 16,
+                        _ => null
+                    };
+
                     return PropertyKind.Primitive;
+                }
             }
 
             if (typeSymbol.Interfaces.Any(t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).StartsWith(BufferableInterface)))
@@ -173,33 +191,10 @@ namespace System.IO.Endian.SourceGenerator
             return PropertyKind.Dynamic;
         }
 
-        public void AddStatementsForVersion(ImmutableArray<StatementSyntax>.Builder statementBuilder, double? version, ByteOrder? byteOrder)
+        public StatementSyntax GetReadStatementForVersion(double? version, ByteOrder? byteOrder)
         {
-            var offsetAttribute = OffsetAttributes.FirstOrDefault(o => o.ValidForVersion(version));
-            if (offsetAttribute == null)
-                return;
-
             var thisIdentifier = SyntaxFactory.IdentifierName("this");
-            var baseAddressIdentifier = SyntaxFactory.IdentifierName("origin");
             var readerIdentifier = SyntaxFactory.IdentifierName("reader");
-            var seekIdentifier = SyntaxFactory.IdentifierName("Seek");
-            var seekOriginBeginExpression = SyntaxFactory.MemberAccessExpression(
-                SyntaxKind.SimpleMemberAccessExpression,
-                SyntaxFactory.IdentifierName("global::System.IO.SeekOrigin"),
-                SyntaxFactory.IdentifierName("Begin"));
-
-            //reader.Seek(baseAddress + {Offset}L, SeekOrigin.Begin);
-            statementBuilder.Add(SyntaxFactory.ExpressionStatement(
-                SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
-                    SyntaxKind.SimpleMemberAccessExpression,
-                    readerIdentifier,
-                    seekIdentifier
-                )).AddArgumentListArguments(SyntaxFactory.Argument(
-                    SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, baseAddressIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(offsetAttribute.Offset)))
-                ), SyntaxFactory.Argument(seekOriginBeginExpression)
-            )).WithLeadingTrivia(SyntaxFactory.TriviaList(
-                SyntaxFactory.Comment($"//0x{offsetAttribute.Offset:X2}")
-            )));
 
             var byteOrderAttribute = ByteOrderAttributes.FirstOrDefault(o => o.ValidForVersion(version));
             if (byteOrderAttribute != null)
@@ -218,8 +213,7 @@ namespace System.IO.Endian.SourceGenerator
             {
                 var storeTypeAttribute = StoreTypeAttributes.FirstOrDefault(o => o.ValidForVersion(version));
                 storeType = storeTypeAttribute?.StoreType ?? Symbol.Type;
-
-                propertyKind = GetPropertyKind(storeType, out storeType);
+                propertyKind = GetPropertyKind(storeType, out storeType, out _);
             }
 
             //since FullyQualifiedDisplayFormat doesnt expand nullables to Nullable<T>, it will just end with a ? instead.
@@ -294,20 +288,22 @@ namespace System.IO.Endian.SourceGenerator
                     SyntaxFactory.IdentifierName(readMethodName)
                 )).AddArgumentListArguments(readArgs);
 
-            //TODO: no need to cast to nullable
+            var propertyType = Symbol.Type;
+            if (propertyType.ContainingNamespace.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System" && propertyType.Name == "Nullable")
+                propertyType = ((INamedTypeSymbol)propertyType).TypeArguments[0];
 
             //({PropertyType}){readExpression}
-            if (!SymbolEqualityComparer.Default.Equals(storeType, Symbol.Type))
-                readExpression = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(Symbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)), readExpression);
+            if (!SymbolEqualityComparer.Default.Equals(storeType, propertyType))
+                readExpression = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(propertyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)), readExpression);
 
             //result.{Property} = {readExpression}
-            statementBuilder.Add(SyntaxFactory.ExpressionStatement(
-                    SyntaxFactory.AssignmentExpression(
+            return SyntaxFactory.ExpressionStatement(
+                SyntaxFactory.AssignmentExpression(
                     SyntaxKind.SimpleAssignmentExpression,
                     SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, thisIdentifier, SyntaxFactory.IdentifierName(Symbol.Name)),
                     readExpression
                 )
-            ));
+            );
         }
     }
 }

@@ -20,6 +20,8 @@ namespace System.IO.Endian.SourceGenerator
 
     internal abstract record VersionedAttributeData(double? MinVersion, double? MaxVersion)
     {
+        public bool IsVersioned => MinVersion.HasValue || MaxVersion.HasValue;
+
         public bool ValidForVersion(double? version)
         {
             if (MinVersion.HasValue && MaxVersion.HasValue)
