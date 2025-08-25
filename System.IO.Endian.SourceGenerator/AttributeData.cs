@@ -29,7 +29,7 @@ namespace System.IO.Endian.SourceGenerator
             else if (MinVersion.HasValue || MaxVersion.HasValue)
                 return version >= MinVersion || version < MaxVersion;
             else
-                return !version.HasValue;
+                return true;
         }
     }
 

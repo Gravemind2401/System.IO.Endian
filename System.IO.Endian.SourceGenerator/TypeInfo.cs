@@ -284,7 +284,7 @@ namespace System.IO.Endian.SourceGenerator
                              orderby offsetAttribute.Offset
                              select (p, offsetAttribute);
 
-                long? currentOffset = 0;
+                long? currentOffset = null;
                 foreach (var (property, offsetAttribute) in sorted)
                 {
                     var readStatement = property.GetReadStatementForVersion(version, (ByteOrder?)byteOrderAttribute?.ByteOrder);
@@ -296,16 +296,21 @@ namespace System.IO.Endian.SourceGenerator
                         readStatement = readStatement.WithLeadingTrivia(commentTrivia);
                     else
                     {
+                        ExpressionSyntax argumentExpression = offsetAttribute.Offset == 0
+                            ? baseAddressIdentifier
+                            : SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, baseAddressIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(offsetAttribute.Offset)));
+
                         //reader.Seek(baseAddress + {Offset}L, SeekOrigin.Begin);
                         builder.Add(SyntaxFactory.ExpressionStatement(
                             SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 readerIdentifier,
                                 seekIdentifier
-                            )).AddArgumentListArguments(SyntaxFactory.Argument(
-                                SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, baseAddressIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(offsetAttribute.Offset)))
-                            ), SyntaxFactory.Argument(seekOriginBeginExpression)
-                        )).WithLeadingTrivia(commentTrivia));
+                            )).AddArgumentListArguments(
+                                SyntaxFactory.Argument(argumentExpression),
+                                SyntaxFactory.Argument(seekOriginBeginExpression)
+                            )).WithLeadingTrivia(commentTrivia)
+                        );
                     }
 
                     builder.Add(readStatement);
