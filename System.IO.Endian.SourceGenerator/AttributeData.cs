@@ -25,7 +25,7 @@ namespace System.IO.Endian.SourceGenerator
         public bool ValidForVersion(double? version)
         {
             if (MinVersion.HasValue && MaxVersion.HasValue)
-                return version >= MinVersion && version < MaxVersion;
+                return version >= MinVersion && (version < MaxVersion || MaxVersion == MinVersion);
             else if (MinVersion.HasValue || MaxVersion.HasValue)
                 return version >= MinVersion || version < MaxVersion;
             else
@@ -34,7 +34,7 @@ namespace System.IO.Endian.SourceGenerator
     }
 
     internal sealed record FixedSizeAttributeData(long Size, double? MinVersion, double? MaxVersion) : VersionedAttributeData(MinVersion, MaxVersion);
-    internal sealed record ByteOrderAttributeData(int ByteOrder, double? MinVersion, double? MaxVersion) : VersionedAttributeData(MinVersion, MaxVersion);
+    internal sealed record ByteOrderAttributeData(ByteOrder ByteOrder, double? MinVersion, double? MaxVersion) : VersionedAttributeData(MinVersion, MaxVersion);
     internal sealed record OffsetAttributeData(long Offset, double? MinVersion, double? MaxVersion) : VersionedAttributeData(MinVersion, MaxVersion);
     internal sealed record StoreTypeAttributeData(ITypeSymbol StoreType, double? MinVersion, double? MaxVersion) : VersionedAttributeData(MinVersion, MaxVersion);
 

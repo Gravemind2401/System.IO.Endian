@@ -12,6 +12,7 @@ namespace System.IO.Endian.SourceGenerator
         ITypeSymbol? UnderlyingType,
         PropertyKind PropertyKind,
         int? PropertySize,
+        bool IsVersionProperty,
         ImmutableEquatableArray<OffsetAttributeData> OffsetAttributes,
         ImmutableEquatableArray<ByteOrderAttributeData> ByteOrderAttributes,
         ImmutableEquatableArray<StoreTypeAttributeData> StoreTypeAttributes,
@@ -25,6 +26,7 @@ namespace System.IO.Endian.SourceGenerator
             var byteOrderBuilder = ImmutableArray.CreateBuilder<ByteOrderAttributeData>();
             var storeTypeBuilder = ImmutableArray.CreateBuilder<StoreTypeAttributeData>();
 
+            var hasVersionNumberAttribute = false;
             var hasInternedAttribute = false;
             var hasLengthPrefixedAttribute = false;
 
@@ -55,7 +57,7 @@ namespace System.IO.Endian.SourceGenerator
 
                 if (attributeNameSpan.SequenceEqual("ByteOrderAttribute"))
                 {
-                    var order = (int)attribute.ConstructorArguments[0].Value!;
+                    var order = (ByteOrder)(int)attribute.ConstructorArguments[0].Value!;
                     attribute.GetVersionArgs(out var minVersion, out var maxVersion);
                     byteOrderBuilder.Add(new ByteOrderAttributeData(order, minVersion, maxVersion));
                     continue;
@@ -115,11 +117,19 @@ namespace System.IO.Endian.SourceGenerator
                     hasInternedAttribute = true;
                     continue;
                 }
+
+                if (attributeNameSpan.SequenceEqual("VersionNumberAttribute"))
+                {
+                    hasVersionNumberAttribute = true;
+                    continue;
+                }
             }
 
             //TODO: check for attribute version overlap issues here and output diagnostic errors
             //TODO: validate string properties here and output diagnostic error if invalid
             //enforce strings cannot have StoreTypeAttribute, StoreTypeAttribute cannot be string
+            //VersionNumber property cannot have versioned offset or store type or byte order
+            //VersionNumber property must be numeric, must have exactly one offset, zero or one store stype, zero or one byte order
 
             ITypeSymbol? underlyingType;
             PropertyKind propertyKind;
@@ -137,6 +147,7 @@ namespace System.IO.Endian.SourceGenerator
                 underlyingType,
                 propertyKind,
                 propertySize,
+                hasVersionNumberAttribute,
                 offsetBuilder.ToImmutableEquatableArray(),
                 byteOrderBuilder.ToImmutableEquatableArray(),
                 storeTypeBuilder.ToImmutableEquatableArray(),
@@ -191,14 +202,27 @@ namespace System.IO.Endian.SourceGenerator
             return PropertyKind.Dynamic;
         }
 
-        public StatementSyntax GetReadStatementForVersion(double? version, ByteOrder? byteOrder)
+        public StatementSyntax GetSetterStatementForVersion(double? version, ByteOrder? byteOrder)
         {
             var thisIdentifier = SyntaxFactory.IdentifierName("this");
+
+            //result.{Property} = {readExpression}
+            return SyntaxFactory.ExpressionStatement(
+                SyntaxFactory.AssignmentExpression(
+                    SyntaxKind.SimpleAssignmentExpression,
+                    SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, thisIdentifier, SyntaxFactory.IdentifierName(Symbol.Name)),
+                    GetReadExpressionForVersion(version, byteOrder)
+                )
+            );
+        }
+
+        public ExpressionSyntax GetReadExpressionForVersion(double? version, ByteOrder? byteOrder)
+        {
             var readerIdentifier = SyntaxFactory.IdentifierName("reader");
 
             var byteOrderAttribute = ByteOrderAttributes.FirstOrDefault(o => o.ValidForVersion(version));
             if (byteOrderAttribute != null)
-                byteOrder = (ByteOrder)byteOrderAttribute.ByteOrder;
+                byteOrder = byteOrderAttribute.ByteOrder;
 
             var byteOrderArgument = byteOrder.HasValue
                 ? SyntaxFactory.Argument(SyntaxFactory.MemberAccessExpression(
@@ -296,14 +320,7 @@ namespace System.IO.Endian.SourceGenerator
             if (!SymbolEqualityComparer.Default.Equals(storeType, propertyType))
                 readExpression = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(propertyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)), readExpression);
 
-            //result.{Property} = {readExpression}
-            return SyntaxFactory.ExpressionStatement(
-                SyntaxFactory.AssignmentExpression(
-                    SyntaxKind.SimpleAssignmentExpression,
-                    SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, thisIdentifier, SyntaxFactory.IdentifierName(Symbol.Name)),
-                    readExpression
-                )
-            );
+            return readExpression;
         }
     }
 }

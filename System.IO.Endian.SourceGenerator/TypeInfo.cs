@@ -49,7 +49,7 @@ namespace System.IO.Endian.SourceGenerator
 
                 if (attributeNameSpan.SequenceEqual("ByteOrderAttribute"))
                 {
-                    var order = (int)attribute.ConstructorArguments[0].Value!;
+                    var order = (ByteOrder)(int)attribute.ConstructorArguments[0].Value!;
                     attribute.GetVersionArgs(out var minVersion, out var maxVersion);
                     byteOrderBuilder.Add(new ByteOrderAttributeData(order, minVersion, maxVersion));
                     continue;
@@ -207,6 +207,31 @@ namespace System.IO.Endian.SourceGenerator
 
             var versionIdentifier = SyntaxFactory.IdentifierName("version");
 
+            //TODO: validate that only one has version attribute and output diagnostic errors if not
+            var versionProperty = Properties.FirstOrDefault(p => p.IsVersionProperty);
+            if (versionProperty != null)
+            {
+                var offset = versionProperty.OffsetAttributes[0].Offset;
+                var byteOrder = versionProperty.ByteOrderAttributes.FirstOrDefault(o => o.ValidForVersion(null))?.ByteOrder
+                    ?? ByteOrderAttributes.FirstOrDefault(o => o.ValidForVersion(null))?.ByteOrder;
+
+                var commentTrivia = SyntaxFactory.TriviaList(
+                    SyntaxFactory.Comment($"//{offset} [0x{offset:X2}] (VersionNumber)")
+                );
+
+                yield return CreateSeekStatement(offset).WithLeadingTrivia(commentTrivia);
+
+                var readExpression = versionProperty.GetReadExpressionForVersion(null, byteOrder);
+                if (versionProperty.Symbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) is not ("double" or "double?"))
+                    readExpression = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName("double"), readExpression);
+
+                yield return SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(
+                    SyntaxKind.SimpleAssignmentExpression,
+                    versionIdentifier,
+                    readExpression
+                ));
+            }
+
             var elseClause = default(ElseClauseSyntax);
             foreach (var (min, max, name) in rangeList.Reverse())
             {
@@ -272,6 +297,25 @@ namespace System.IO.Endian.SourceGenerator
                 ).WithBody(SyntaxFactory.Block(body.ToArray()));
             }
 
+            StatementSyntax CreateSeekStatement(long relativeOffset)
+            {
+                ExpressionSyntax argumentExpression = relativeOffset == 0
+                    ? baseAddressIdentifier
+                    : SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, baseAddressIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(relativeOffset)));
+
+                //reader.Seek(baseAddress + {Offset}L, SeekOrigin.Begin);
+                return SyntaxFactory.ExpressionStatement(
+                    SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        readerIdentifier,
+                        seekIdentifier
+                    )).AddArgumentListArguments(
+                        SyntaxFactory.Argument(argumentExpression),
+                        SyntaxFactory.Argument(seekOriginBeginExpression)
+                    )
+                );
+            }
+
             ImmutableArray<StatementSyntax> BuildStatementsForVersion(double? version)
             {
                 var builder = ImmutableArray.CreateBuilder<StatementSyntax>();
@@ -287,7 +331,7 @@ namespace System.IO.Endian.SourceGenerator
                 long? currentOffset = null;
                 foreach (var (property, offsetAttribute) in sorted)
                 {
-                    var readStatement = property.GetReadStatementForVersion(version, (ByteOrder?)byteOrderAttribute?.ByteOrder);
+                    var readStatement = property.GetSetterStatementForVersion(version, (ByteOrder?)byteOrderAttribute?.ByteOrder);
                     var commentTrivia = SyntaxFactory.TriviaList(
                         SyntaxFactory.Comment($"//{offsetAttribute.Offset} [0x{offsetAttribute.Offset:X2}]")
                     );
@@ -295,23 +339,7 @@ namespace System.IO.Endian.SourceGenerator
                     if (offsetAttribute.Offset == currentOffset)
                         readStatement = readStatement.WithLeadingTrivia(commentTrivia);
                     else
-                    {
-                        ExpressionSyntax argumentExpression = offsetAttribute.Offset == 0
-                            ? baseAddressIdentifier
-                            : SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, baseAddressIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(offsetAttribute.Offset)));
-
-                        //reader.Seek(baseAddress + {Offset}L, SeekOrigin.Begin);
-                        builder.Add(SyntaxFactory.ExpressionStatement(
-                            SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
-                                SyntaxKind.SimpleMemberAccessExpression,
-                                readerIdentifier,
-                                seekIdentifier
-                            )).AddArgumentListArguments(
-                                SyntaxFactory.Argument(argumentExpression),
-                                SyntaxFactory.Argument(seekOriginBeginExpression)
-                            )).WithLeadingTrivia(commentTrivia)
-                        );
-                    }
+                        builder.Add(CreateSeekStatement(offsetAttribute.Offset).WithLeadingTrivia(commentTrivia));
 
                     builder.Add(readStatement);
 
