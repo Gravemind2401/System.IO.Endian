@@ -141,19 +141,6 @@ namespace System.IO.Endian.SourceGenerator
                 SyntaxFactory.IdentifierName("global::System.IO.SeekOrigin"),
                 SyntaxFactory.IdentifierName("Begin"));
 
-            //var baseAddress = reader.Position;
-            yield return SyntaxFactory.LocalDeclarationStatement(SyntaxFactory.VariableDeclaration(SyntaxFactory.IdentifierName("var"))
-                .AddVariables(
-                    SyntaxFactory.VariableDeclarator(baseAddressToken)
-                        .WithInitializer(SyntaxFactory.EqualsValueClause(
-                                SyntaxFactory.MemberAccessExpression(
-                                        SyntaxKind.SimpleMemberAccessExpression,
-                                        readerIdentifier,
-                                        SyntaxFactory.IdentifierName("Position")
-                                    )
-                            ))
-                ));
-
             var hasUnboundedMin = false;
             var hasUnboundedMax = false;
             var versionSet = new HashSet<double?>();
