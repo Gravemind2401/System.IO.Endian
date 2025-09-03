@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using PolyType.Roslyn;
 using System.Collections.Immutable;
+using static System.IO.Endian.SourceGenerator.DiagnosticDescriptors;
 using static System.IO.Endian.SourceGenerator.Globals;
 
 namespace System.IO.Endian.SourceGenerator
@@ -15,9 +16,20 @@ namespace System.IO.Endian.SourceGenerator
         ImmutableEquatableArray<ByteOrderAttributeData> ByteOrderAttributes,
         ImmutableEquatableArray<PropertyInfo> Properties)
     {
-        public static TypeInfo FromContext(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
+        public static TypeInfo? FromContext(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken, out ImmutableEquatableArray<DiagnosticInfo> diagnostics)
         {
+            diagnostics = [];
+
             var typeSymbol = (ITypeSymbol)context.TargetSymbol;
+
+            if (typeSymbol.AllInterfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == TargetInterface))
+            {
+                diagnostics = [DiagnosticInfo.Create(DuplicateInterfaceForStreamableObjectAttribute, typeSymbol, typeSymbol.Name)];
+                return null;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
             var typeSyntax = (TypeDeclarationSyntax)context.TargetNode;
 
             var fixedSizeBuilder = ImmutableArray.CreateBuilder<FixedSizeAttributeData>();

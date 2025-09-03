@@ -129,7 +129,7 @@ namespace System.IO.Endian.SourceGenerator
             //TODO: validate string properties here and output diagnostic error if invalid
             //enforce strings cannot have StoreTypeAttribute, StoreTypeAttribute cannot be string
             //VersionNumber property cannot have versioned offset or store type or byte order
-            //VersionNumber property must be numeric, must have exactly one offset, zero or one store stype, zero or one byte order
+            //VersionNumber property must be numeric, must have exactly one offset, zero or one store type, zero or one byte order
 
             ITypeSymbol? underlyingType;
             PropertyKind propertyKind;
