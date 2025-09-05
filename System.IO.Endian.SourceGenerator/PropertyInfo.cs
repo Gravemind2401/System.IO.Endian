@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using PolyType.Roslyn;
 using System.Collections.Immutable;
+using static System.IO.Endian.SourceGenerator.DiagnosticDescriptors;
 using static System.IO.Endian.SourceGenerator.Globals;
 
 namespace System.IO.Endian.SourceGenerator
@@ -18,9 +19,11 @@ namespace System.IO.Endian.SourceGenerator
         ImmutableEquatableArray<StoreTypeAttributeData> StoreTypeAttributes,
         StringAttributeInfo StringAttributes)
     {
-        public static PropertyInfo FromSymbol(IPropertySymbol symbol, SyntaxTree syntaxTree, CancellationToken cancellationToken)
+        public static PropertyInfo FromSymbol(IPropertySymbol symbol, SyntaxTree syntaxTree, CancellationToken cancellationToken, ImmutableArray<DiagnosticInfo>.Builder diagnosticsBuilder)
         {
             var attributes = symbol.GetAttributes();
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             var offsetBuilder = ImmutableArray.CreateBuilder<OffsetAttributeData>();
             var byteOrderBuilder = ImmutableArray.CreateBuilder<ByteOrderAttributeData>();
@@ -131,6 +134,8 @@ namespace System.IO.Endian.SourceGenerator
             //VersionNumber property cannot have versioned offset or store type or byte order
             //VersionNumber property must be numeric, must have exactly one offset, zero or one store type, zero or one byte order
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             ITypeSymbol? underlyingType;
             PropertyKind propertyKind;
             int? propertySize;
@@ -141,6 +146,76 @@ namespace System.IO.Endian.SourceGenerator
                 propertyKind = GetPropertyKind(storeTypeBuilder[0].StoreType, out underlyingType, out propertySize);
             else
                 (underlyingType, propertyKind, propertySize) = (null, PropertyKind.Deferred, null);
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (hasVersionNumberAttribute)
+            {
+                if (offsetBuilder.Count == 0)
+                {
+                    diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                        NoOffsetForVersionNumberMember,
+                        symbol,
+                        symbol.Name
+                    ));
+                }
+                else if (offsetBuilder.Count > 1)
+                {
+                    diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                        MultipleOffsetsForVersionNumberMember,
+                        symbol,
+                        symbol.Name
+                    ));
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (byteOrderBuilder.Count > 1)
+                {
+                    diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                        MultipleByteOrdersForVersionNumberMember,
+                        symbol,
+                        symbol.Name
+                    ));
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (storeTypeBuilder.Count > 1)
+                {
+                    diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                        MultipleStoreTypesForVersionNumberMember,
+                        symbol,
+                        symbol.Name
+                    ));
+                }
+
+                var typeTest = storeTypeBuilder.Count == 1
+                    ? storeTypeBuilder[0].StoreType
+                    : symbol.Type;
+
+                if (typeTest.ContainingNamespace?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) != "global::System"
+                    || typeTest.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).TrimEnd('?') is not ("byte" or "sbyte" or "short" or "ushort" or "int" or "uint" or "long" or "ulong" or "Half" or "float" or "double" or "decimal"))
+                {
+                    diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                        NonNumericMemberWithVersionNumberAttribute,
+                        symbol,
+                        symbol.Name,
+                        typeTest.ToDisplayString(FullyQualifiedDisplayFormat)
+                    ));
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (offsetBuilder.Any(x => x.IsVersioned) || byteOrderBuilder.Any(x => x.IsVersioned) || storeTypeBuilder.Any(x => x.IsVersioned))
+                {
+                    diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                        VersionedAttributesForVersionNumberMember,
+                        symbol,
+                        symbol.Name
+                    ));
+                }
+            }
 
             return new PropertyInfo(
                 symbol,

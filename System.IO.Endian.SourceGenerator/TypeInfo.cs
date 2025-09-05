@@ -31,11 +31,15 @@ namespace System.IO.Endian.SourceGenerator
             cancellationToken.ThrowIfCancellationRequested();
 
             var typeSyntax = (TypeDeclarationSyntax)context.TargetNode;
+            var attributes = typeSymbol.GetAttributes();
 
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var diagnosticsBuilder = ImmutableArray.CreateBuilder<DiagnosticInfo>();
             var fixedSizeBuilder = ImmutableArray.CreateBuilder<FixedSizeAttributeData>();
             var byteOrderBuilder = ImmutableArray.CreateBuilder<ByteOrderAttributeData>();
 
-            var attributes = typeSymbol.GetAttributes();
+            var versionProp = default(PropertyInfo);
 
             foreach (var attribute in attributes)
             {
@@ -83,7 +87,28 @@ namespace System.IO.Endian.SourceGenerator
                 if (context.SemanticModel.GetDeclaredSymbol(memberSyntax, cancellationToken) is not IPropertySymbol propertySymbol)
                     continue;
 
-                propertyBuilder.Add(PropertyInfo.FromSymbol(propertySymbol, memberSyntax.SyntaxTree, cancellationToken));
+                var prop = PropertyInfo.FromSymbol(propertySymbol, memberSyntax.SyntaxTree, cancellationToken, diagnosticsBuilder);
+                if (prop.IsVersionProperty)
+                {
+                    if (versionProp == null)
+                        versionProp = prop;
+                    else
+                    {
+                        diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                            MultipleMembersWithVersionNumberAttribute,
+                            prop.Symbol,
+                            typeSymbol.Name
+                        ));
+                    }
+                }
+
+                propertyBuilder.Add(prop);
+            }
+
+            if (diagnosticsBuilder.Count > 0)
+            {
+                diagnostics = diagnosticsBuilder.ToImmutableEquatableArray();
+                return null;
             }
 
             return new TypeInfo(
