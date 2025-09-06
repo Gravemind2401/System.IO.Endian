@@ -85,5 +85,41 @@ namespace System.IO.Endian.SourceGenerator
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: $"Properties with {VersionNumberAttribute} applied cannot specify MinVersion or MaxVersion when applying {OffsetAttribute}, {ByteOrderAttribute} and {StoreTypeAttribute}.");
+
+        public static readonly DiagnosticDescriptor StoreTypeOnStringMember = new(
+            id: "SIOE0009",
+            title: $"{StoreTypeAttribute} attribute used on a string member",
+            messageFormat: $"String properties cannot have the {StoreTypeAttribute} attribute applied",
+            category: typeof(SourceGenerator).FullName,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: $"The {StoreTypeAttribute} attribute cannot be used on string members.");
+
+        public static readonly DiagnosticDescriptor StoreTypeIsString = new(
+            id: "SIOE0010",
+            title: $"System.String used as parameter for {StoreTypeAttribute} attribute",
+            messageFormat: $"The type parameter for the {StoreTypeAttribute} attribute cannot be typeof(string)",
+            category: typeof(SourceGenerator).FullName,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: $"The type System.String cannot be used as the parameter for {StoreTypeAttribute}.");
+
+        public static readonly DiagnosticDescriptor AmbiguousStringStorageMode = new(
+            id: "SIOE0011",
+            title: $"Ambiguous string member storage mode",
+            messageFormat: $"String members must apply either [FixedLength], [NullTerminated] or [LengthPrefixed] attribute",
+            category: typeof(SourceGenerator).FullName,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: $"String members must apply either [FixedLength], [NullTerminated] or [LengthPrefixed] attribute.");
+
+        public static readonly DiagnosticDescriptor DuplicateStringStorageMode = new(
+            id: "SIOE0012",
+            title: $"Duplicate string member storage mode attributes",
+            messageFormat: $"String members cannot have {{0}} and {{1}} attributes applied at the same time",
+            category: typeof(SourceGenerator).FullName,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: $"String members can only have one of [FixedLength], [NullTerminated] or [LengthPrefixed].");
     }
 }

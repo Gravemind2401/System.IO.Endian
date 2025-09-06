@@ -117,6 +117,7 @@ namespace System.IO.Endian.SourceGenerator
 
                 if (attributeNameSpan.SequenceEqual("InternedAttribute"))
                 {
+                    //TODO: use string.Intern() when reading string properties
                     hasInternedAttribute = true;
                     continue;
                 }
@@ -129,8 +130,6 @@ namespace System.IO.Endian.SourceGenerator
             }
 
             //TODO: check for attribute version overlap issues here and output diagnostic errors
-            //TODO: validate string properties here and output diagnostic error if invalid
-            //enforce strings cannot have StoreTypeAttribute, StoreTypeAttribute cannot be string
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -214,6 +213,66 @@ namespace System.IO.Endian.SourceGenerator
                     ));
                 }
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (storeTypeBuilder.Any(x => x.StoreType.ToFullyQualifiedGlobalDisplayString() == "string"))
+            {
+                diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                    StoreTypeIsString,
+                    symbol
+                ));
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (symbol.Type.ToFullyQualifiedGlobalDisplayString() == "string")
+            {
+                if (storeTypeBuilder.Count > 0)
+                {
+                    diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                        StoreTypeOnStringMember,
+                        symbol
+                    ));
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (offsetBuilder.Count > 0)
+                {
+                    var attrCount = Convert.ToInt32(hasLengthPrefixedAttribute) + Convert.ToInt32(nullTerminatedAttributeData != null) + Convert.ToInt32(fixedLengthAttributeData != null);
+                    if (attrCount == 0)
+                    {
+                        diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                            AmbiguousStringStorageMode,
+                            symbol
+                        ));
+                    }
+                    else if (attrCount > 1)
+                    {
+                        var prefixedName = hasLengthPrefixedAttribute
+                            ? "[LengthPrefixed]"
+                            : null;
+
+                        var nullTerminatedName = nullTerminatedAttributeData != null
+                            ? "[NullTerminated]"
+                            : null;
+
+                        var fixedLengthName = fixedLengthAttributeData != null
+                            ? "[FixedLength]"
+                            : null;
+
+                        diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                            DuplicateStringStorageMode,
+                            symbol,
+                            prefixedName ?? nullTerminatedName!,
+                            fixedLengthName ?? nullTerminatedName!
+                        ));
+                    }
+                }
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             return new PropertyInfo(
                 symbol,
