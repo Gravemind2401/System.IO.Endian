@@ -129,8 +129,6 @@ namespace System.IO.Endian.SourceGenerator
                 }
             }
 
-            //TODO: check for attribute version overlap issues here and output diagnostic errors
-
             cancellationToken.ThrowIfCancellationRequested();
 
             ITypeSymbol? underlyingType;
@@ -144,10 +142,30 @@ namespace System.IO.Endian.SourceGenerator
             else
                 (underlyingType, propertyKind, propertySize) = (null, PropertyKind.Deferred, null);
 
+            ValidateVersionProperty();
+            ValidateStringProperty();
+            ValidateAttributes();
+
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (hasVersionNumberAttribute)
+            return new PropertyInfo(
+                symbol,
+                underlyingType,
+                propertyKind,
+                propertySize,
+                hasVersionNumberAttribute,
+                offsetBuilder.ToImmutableEquatableArray(),
+                byteOrderBuilder.ToImmutableEquatableArray(),
+                storeTypeBuilder.ToImmutableEquatableArray(),
+                new StringAttributeInfo(hasInternedAttribute, hasLengthPrefixedAttribute, nullTerminatedAttributeData, fixedLengthAttributeData));
+
+            void ValidateVersionProperty()
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (!hasVersionNumberAttribute)
+                    return;
+
                 if (offsetBuilder.Count == 0)
                 {
                     diagnosticsBuilder.Add(DiagnosticInfo.Create(
@@ -214,20 +232,13 @@ namespace System.IO.Endian.SourceGenerator
                 }
             }
 
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (storeTypeBuilder.Any(x => x.StoreType.ToFullyQualifiedGlobalDisplayString() == "string"))
+            void ValidateStringProperty()
             {
-                diagnosticsBuilder.Add(DiagnosticInfo.Create(
-                    StoreTypeIsString,
-                    symbol
-                ));
-            }
+                cancellationToken.ThrowIfCancellationRequested();
 
-            cancellationToken.ThrowIfCancellationRequested();
+                if (symbol.Type.ToFullyQualifiedGlobalDisplayString() != "string")
+                    return;
 
-            if (symbol.Type.ToFullyQualifiedGlobalDisplayString() == "string")
-            {
                 if (storeTypeBuilder.Count > 0)
                 {
                     diagnosticsBuilder.Add(DiagnosticInfo.Create(
@@ -272,18 +283,20 @@ namespace System.IO.Endian.SourceGenerator
                 }
             }
 
-            cancellationToken.ThrowIfCancellationRequested();
+            void ValidateAttributes()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
 
-            return new PropertyInfo(
-                symbol,
-                underlyingType,
-                propertyKind,
-                propertySize,
-                hasVersionNumberAttribute,
-                offsetBuilder.ToImmutableEquatableArray(),
-                byteOrderBuilder.ToImmutableEquatableArray(),
-                storeTypeBuilder.ToImmutableEquatableArray(),
-                new StringAttributeInfo(hasInternedAttribute, hasLengthPrefixedAttribute, nullTerminatedAttributeData, fixedLengthAttributeData));
+                if (storeTypeBuilder.Any(x => x.StoreType.ToFullyQualifiedGlobalDisplayString() == "string"))
+                {
+                    diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                        StoreTypeIsString,
+                        symbol
+                    ));
+                }
+
+                //TODO: check for attribute version overlap issues here and output diagnostic errors
+            }
         }
 
         private static PropertyKind GetPropertyKind(ITypeSymbol typeSymbol, out ITypeSymbol underlyingType, out int? propertySize)
