@@ -44,11 +44,11 @@ namespace System.IO.Endian.SourceGenerator
                 if (attribute.ApplicationSyntaxReference?.SyntaxTree != syntaxTree)
                     continue;
 
-                var attributeDisplayName = attribute.AttributeClass?.ToDisplayString(FullyQualifiedDisplayFormat);
-                if (attributeDisplayName == null || !attributeDisplayName.AsSpan().StartsWith(HomeNamespace))
+                var attributeDisplayName = attribute.AttributeClass?.ToFullyQualifiedGlobalDisplayString();
+                if (attributeDisplayName == null || !attributeDisplayName.AsSpan().StartsWith(HomeNamespaceGlobal))
                     continue;
 
-                var attributeNameSpan = attributeDisplayName.AsSpan(HomeNamespace.Length + 1);
+                var attributeNameSpan = attributeDisplayName.AsSpan(HomeNamespaceGlobal.Length + 1);
 
                 if (attributeNameSpan.SequenceEqual("OffsetAttribute"))
                 {
@@ -131,8 +131,6 @@ namespace System.IO.Endian.SourceGenerator
             //TODO: check for attribute version overlap issues here and output diagnostic errors
             //TODO: validate string properties here and output diagnostic error if invalid
             //enforce strings cannot have StoreTypeAttribute, StoreTypeAttribute cannot be string
-            //VersionNumber property cannot have versioned offset or store type or byte order
-            //VersionNumber property must be numeric, must have exactly one offset, zero or one store type, zero or one byte order
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -194,14 +192,14 @@ namespace System.IO.Endian.SourceGenerator
                     ? storeTypeBuilder[0].StoreType
                     : symbol.Type;
 
-                if (typeTest.ContainingNamespace?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) != "global::System"
-                    || typeTest.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).TrimEnd('?') is not ("byte" or "sbyte" or "short" or "ushort" or "int" or "uint" or "long" or "ulong" or "Half" or "float" or "double" or "decimal"))
+                var typeName = typeTest.ToFullyQualifiedLocalDisplayString();
+                if (typeName.TrimEnd('?') is not ("byte" or "sbyte" or "short" or "ushort" or "int" or "uint" or "long" or "ulong" or "Half" or "float" or "double" or "decimal"))
                 {
                     diagnosticsBuilder.Add(DiagnosticInfo.Create(
                         NonNumericMemberWithVersionNumberAttribute,
                         symbol,
                         symbol.Name,
-                        typeTest.ToDisplayString(FullyQualifiedDisplayFormat)
+                        typeName
                     ));
                 }
 
@@ -315,10 +313,6 @@ namespace System.IO.Endian.SourceGenerator
                 propertyKind = GetPropertyKind(storeType, out storeType, out _);
             }
 
-            //since FullyQualifiedDisplayFormat doesnt expand nullables to Nullable<T>, it will just end with a ? instead.
-            //since nullables allow implicit casts from non-nullable values, we dont need to do anything about the type difference.
-            var typeName = storeType.ToDisplayString(FullyQualifiedDisplayFormat).TrimEnd('?');
-
             string readMethodName;
             ArgumentSyntax[] readArgs;
 
@@ -354,29 +348,37 @@ namespace System.IO.Endian.SourceGenerator
             }
             else if (propertyKind is PropertyKind.Primitive or PropertyKind.String)
             {
+                //since nullables allow implicit casts from non-nullable values, we dont need to do anything about the type difference.
+                var typeName = storeType.ToFrameworkTypesDisplayString().TrimEnd('?');
                 readMethodName = "Read" + typeName.Substring("System.".Length);
 
                 readArgs = byteOrder.HasValue ? new ArgumentSyntax[1] : Array.Empty<ArgumentSyntax>();
                 if (byteOrder.HasValue && typeName is not ("System.SByte" or "System.Byte"))
                     readArgs[0] = byteOrderArgument!;
             }
-            else if (propertyKind == PropertyKind.Bufferable)
-            {
-                readMethodName = $"ReadBufferable<{typeName}>";
-                readArgs = byteOrder.HasValue ? new ArgumentSyntax[1] : Array.Empty<ArgumentSyntax>();
-                if (byteOrder.HasValue)
-                    readArgs[0] = byteOrderArgument!;
-            }
             else
             {
-                readMethodName = $"ReadObject<{typeName}>";
-                readArgs = version.HasValue ? new ArgumentSyntax[1] : Array.Empty<ArgumentSyntax>();
-                if (version.HasValue)
+                //since nullables allow implicit casts from non-nullable values, we dont need to do anything about the type difference.
+                var typeName = storeType.ToFullyQualifiedGlobalDisplayString().TrimEnd('?');
+
+                if (propertyKind == PropertyKind.Bufferable)
                 {
-                    readArgs[0] = SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
-                        SyntaxKind.NumericLiteralExpression,
-                        SyntaxFactory.Literal(version.Value)
-                    ));
+                    readMethodName = $"ReadBufferable<{typeName}>";
+                    readArgs = byteOrder.HasValue ? new ArgumentSyntax[1] : Array.Empty<ArgumentSyntax>();
+                    if (byteOrder.HasValue)
+                        readArgs[0] = byteOrderArgument!;
+                }
+                else
+                {
+                    readMethodName = $"ReadObject<{typeName}>";
+                    readArgs = version.HasValue ? new ArgumentSyntax[1] : Array.Empty<ArgumentSyntax>();
+                    if (version.HasValue)
+                    {
+                        readArgs[0] = SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                            SyntaxKind.NumericLiteralExpression,
+                            SyntaxFactory.Literal(version.Value)
+                        ));
+                    }
                 }
             }
 

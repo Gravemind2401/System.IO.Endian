@@ -49,11 +49,11 @@ namespace System.IO.Endian.SourceGenerator
                 if (attribute.ApplicationSyntaxReference?.SyntaxTree != typeSyntax.SyntaxTree)
                     continue;
 
-                var attributeDisplayName = attribute.AttributeClass?.ToDisplayString(FullyQualifiedDisplayFormat);
-                if (attributeDisplayName == null || !attributeDisplayName.AsSpan().StartsWith(HomeNamespace))
+                var attributeDisplayName = attribute.AttributeClass?.ToFullyQualifiedGlobalDisplayString();
+                if (attributeDisplayName == null || !attributeDisplayName.AsSpan().StartsWith(HomeNamespaceGlobal))
                     continue;
 
-                var attributeNameSpan = attributeDisplayName.AsSpan(HomeNamespace.Length + 1);
+                var attributeNameSpan = attributeDisplayName.AsSpan(HomeNamespaceGlobal.Length + 1);
 
                 if (attributeNameSpan.SequenceEqual("FixedSizeAttribute"))
                 {
@@ -82,7 +82,7 @@ namespace System.IO.Endian.SourceGenerator
                     continue;
 
                 if (memberSyntax.AttributeLists.Count == 0)
-                    continue; //not a readable property if no attribute
+                    continue; //definitely not a readable property if no attributes
 
                 if (context.SemanticModel.GetDeclaredSymbol(memberSyntax, cancellationToken) is not IPropertySymbol propertySymbol)
                     continue;
@@ -112,7 +112,7 @@ namespace System.IO.Endian.SourceGenerator
             }
 
             return new TypeInfo(
-                typeSymbol.ContainingNamespace.ToDisplayString(FullyQualifiedDisplayFormat),
+                typeSymbol.ContainingNamespace.ToFullyQualifiedLocalDisplayString(),
                 typeSymbol.Name,
                 typeSymbol.TypeKind,
                 fixedSizeBuilder.ToImmutableEquatableArray(),
