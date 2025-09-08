@@ -121,5 +121,14 @@ namespace System.IO.Endian.SourceGenerator
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: $"String members can only have one of [FixedLength], [NullTerminated] or [LengthPrefixed].");
+
+        public static readonly DiagnosticDescriptor AttributeVersionOverlap = new(
+            id: "SIOE0013",
+            title: $"Attribute version range overlap",
+            messageFormat: $"The [{{0}}] attributes on {{1}}.{{2}} have overlapping version parameters",
+            category: typeof(SourceGenerator).FullName,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: $"Multiple of the same attribute on the same member must not have any overlap between the version paramaters.");
     }
 }

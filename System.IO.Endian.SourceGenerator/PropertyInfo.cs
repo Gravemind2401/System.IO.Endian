@@ -295,7 +295,65 @@ namespace System.IO.Endian.SourceGenerator
                     ));
                 }
 
-                //TODO: check for attribute version overlap issues here and output diagnostic errors
+                if (CheckForOverlap(offsetBuilder))
+                {
+                    diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                        AttributeVersionOverlap,
+                        symbol,
+                        "Offset",
+                        symbol.ContainingType.Name,
+                        symbol.Name
+                    ));
+                }
+
+                if (CheckForOverlap(byteOrderBuilder))
+                {
+                    diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                        AttributeVersionOverlap,
+                        symbol,
+                        "ByteOrder",
+                        symbol.ContainingType.Name,
+                        symbol.Name
+                    ));
+                }
+
+                if (CheckForOverlap(storeTypeBuilder))
+                {
+                    diagnosticsBuilder.Add(DiagnosticInfo.Create(
+                        AttributeVersionOverlap,
+                        symbol,
+                        "StoreType",
+                        symbol.ContainingType.Name,
+                        symbol.Name
+                    ));
+                }
+            }
+
+            bool CheckForOverlap<T>(IList<T> attributes) where T : VersionedAttributeData
+            {
+                if (attributes.Count < 2)
+                    return false;
+
+                for (var i = 0; i < attributes.Count - 1; i++)
+                {
+                    if (!attributes[i].IsVersioned)
+                        continue;
+
+                    for (var j = i + 1; j < attributes.Count; j++)
+                    {
+                        if (!attributes[j].IsVersioned)
+                            continue;
+
+                        var (a, b) = (attributes[i], attributes[j]);
+                        if (a.MinVersion < b.MaxVersion
+                            || b.MinVersion < a.MaxVersion
+                            || (a.MinVersion == null && b.MinVersion == null)
+                            || (a.MaxVersion == null && b.MaxVersion == null))
+                            return true;
+                    }
+                }
+
+                return false;
             }
         }
 
