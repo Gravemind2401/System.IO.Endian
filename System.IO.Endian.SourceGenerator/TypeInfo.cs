@@ -142,7 +142,7 @@ namespace System.IO.Endian.SourceGenerator
             ).NormalizeWhitespace();
         }
 
-        public TypeDeclarationSyntax GetDeclarationSyntax()
+        private TypeDeclarationSyntax GetDeclarationSyntax()
         {
             return Kind switch
             {
@@ -152,25 +152,44 @@ namespace System.IO.Endian.SourceGenerator
             };
         }
 
-        public MethodDeclarationSyntax GetMethodSyntax()
+        private MethodDeclarationSyntax[] GetMethodSyntax()
         {
-            var methodDec = SyntaxFactory.MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), InterfaceReadMethod)
+            var helper = new VersionRangeHelper(this, SyntaxFactory.IdentifierName("version"));
+
+            var readMethodDec = SyntaxFactory.MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), InterfaceReadMethod)
                 .WithExplicitInterfaceSpecifier(SyntaxFactory.ExplicitInterfaceSpecifier(SyntaxFactory.IdentifierName(TargetInterface)))
                 .AddParameterListParameters(
                     SyntaxFactory.Parameter(SyntaxFactory.Identifier("reader")).WithType(SyntaxFactory.IdentifierName("global::System.IO.Endian.EndianReader")),
                     SyntaxFactory.Parameter(SyntaxFactory.Identifier("version")).WithType(SyntaxFactory.IdentifierName("double?")),
                     SyntaxFactory.Parameter(SyntaxFactory.Identifier("origin")).WithType(SyntaxFactory.IdentifierName("long"))
                 )
-                .WithBody(SyntaxFactory.Block(EnumerateReadStatements().ToArray()));
+                .WithBody(SyntaxFactory.Block(EnumerateReadStatements(helper).ToArray()));
 
-            return methodDec;
+            var writeMethodDec = SyntaxFactory.MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), InterfaceWriteMethod)
+                .WithExplicitInterfaceSpecifier(SyntaxFactory.ExplicitInterfaceSpecifier(SyntaxFactory.IdentifierName(TargetInterface)))
+                .AddParameterListParameters(
+                    SyntaxFactory.Parameter(SyntaxFactory.Identifier("writer")).WithType(SyntaxFactory.IdentifierName("global::System.IO.Endian.EndianWriter")),
+                    SyntaxFactory.Parameter(SyntaxFactory.Identifier("version")).WithType(SyntaxFactory.IdentifierName("double?")),
+                    SyntaxFactory.Parameter(SyntaxFactory.Identifier("origin")).WithType(SyntaxFactory.IdentifierName("long"))
+                )
+                .WithBody(SyntaxFactory.Block(EnumerateWriteStatements(helper).ToArray()));
+
+            return [readMethodDec, writeMethodDec];
         }
 
-        public IEnumerable<StatementSyntax> EnumerateReadStatements()
+        private IEnumerable<(PropertyInfo, OffsetAttributeData)> EnumeratePropertyOffsets(double? version)
         {
-            var baseAddressToken = SyntaxFactory.Identifier("baseAddress");
-            var baseAddressIdentifier = SyntaxFactory.IdentifierName("origin");
+            //always read/write in order of offset so the final position is at the end of the highest property
+            return from p in Properties
+                   let offsetAttribute = p.OffsetAttributes.FirstOrDefault(o => o.ValidForVersion(version))
+                   where offsetAttribute != null
+                   orderby offsetAttribute.Offset
+                   select (p, offsetAttribute);
+        }
 
+        private IEnumerable<StatementSyntax> EnumerateReadStatements(VersionRangeHelper versionHelper)
+        {
+            var baseAddressIdentifier = SyntaxFactory.IdentifierName("origin");
             var readerIdentifier = SyntaxFactory.IdentifierName("reader");
             var seekIdentifier = SyntaxFactory.IdentifierName("Seek");
             var seekOriginBeginExpression = SyntaxFactory.MemberAccessExpression(
@@ -178,28 +197,7 @@ namespace System.IO.Endian.SourceGenerator
                 SyntaxFactory.IdentifierName("global::System.IO.SeekOrigin"),
                 SyntaxFactory.IdentifierName("Begin"));
 
-            var hasUnboundedMin = false;
-            var hasUnboundedMax = false;
-            var versionSet = new HashSet<double?>();
-
-            var allVersionAttributes = FixedSizeAttributes.Cast<VersionedAttributeData>()
-                .Concat(ByteOrderAttributes)
-                .Concat(Properties.SelectMany(p => p.OffsetAttributes.Cast<VersionedAttributeData>().Concat(p.ByteOrderAttributes).Concat(p.StoreTypeAttributes)));
-
-            foreach (var attr in allVersionAttributes)
-            {
-                if (attr.MinVersion.HasValue)
-                    versionSet.Add(attr.MinVersion);
-                else
-                    hasUnboundedMin = true;
-
-                if (attr.MaxVersion.HasValue)
-                    versionSet.Add(attr.MaxVersion);
-                else
-                    hasUnboundedMax = true;
-            }
-
-            if (versionSet.Count == 0)
+            if (!versionHelper.IsVersioned)
             {
                 var body = BuildStatementsForVersion(null);
                 foreach (var statement in body)
@@ -207,32 +205,9 @@ namespace System.IO.Endian.SourceGenerator
                 yield break;
             }
 
-            var versionList = versionSet.ToList();
-            versionList.Sort();
-
-            if (hasUnboundedMin)
-                versionList.Insert(0, null);
-            if (hasUnboundedMax)
-                versionList.Add(null);
-
-            var rangeList = new (double? Min, double? Max, string Name)[versionList.Count -1];
-
-            for (var i = 0; i < versionList.Count - 1; i++)
-            {
-                var (min, max) = (versionList[i], versionList[i + 1]);
-                var minName = min.HasValue
-                    ? "_GE" + min.Value.ToString().Replace('.', 'x')
-                    : null;
-                var maxName = max.HasValue
-                    ? "_LT" + max.Value.ToString().Replace('.', 'x')
-                    : null;
-                rangeList[i] = (min, max, $"Read{minName}{maxName}");
-            }
-
             var versionIdentifier = SyntaxFactory.IdentifierName("version");
-
-            //TODO: validate that only one has version attribute and output diagnostic errors if not
             var versionProperty = Properties.FirstOrDefault(p => p.IsVersionProperty);
+
             if (versionProperty != null)
             {
                 var offset = versionProperty.OffsetAttributes[0].Offset;
@@ -256,70 +231,10 @@ namespace System.IO.Endian.SourceGenerator
                 ));
             }
 
-            var elseClause = default(ElseClauseSyntax);
-            foreach (var (min, max, name) in rangeList.Reverse())
-            {
-                var minCheck = min.HasValue
-                    ? SyntaxFactory.BinaryExpression(SyntaxKind.GreaterThanOrEqualExpression, versionIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(min.Value)))
-                    : null;
+            yield return versionHelper.VersionCheckStatement!;
 
-                var maxCheck = max.HasValue
-                    ? SyntaxFactory.BinaryExpression(SyntaxKind.LessThanExpression, versionIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(max.Value)))
-                    : null;
-
-                var combinedCheck = minCheck != null && maxCheck != null
-                    ? SyntaxFactory.BinaryExpression(SyntaxKind.LogicalAndExpression, minCheck, maxCheck)
-                    : minCheck ?? maxCheck!;
-
-                //else if ({VersionCheck})
-                //    {ReadMethod}();
-                elseClause = SyntaxFactory.ElseClause(
-                    SyntaxFactory.IfStatement(
-                        combinedCheck,
-                        SyntaxFactory.ExpressionStatement(SyntaxFactory.InvocationExpression(SyntaxFactory.IdentifierName(name))),
-                        elseClause
-                    )
-                );
-            }
-
-            var messageStringSyntax = SyntaxFactory.InterpolatedStringExpression(SyntaxFactory.Token(SyntaxKind.InterpolatedStringStartToken)).AddContents(
-                SyntaxFactory.InterpolatedStringText(SyntaxFactory.Token(SyntaxFactory.TriviaList(), SyntaxKind.InterpolatedStringTextToken, "Must provide a version when reading type \\\"", string.Empty, SyntaxFactory.TriviaList())),
-                SyntaxFactory.Interpolation(
-                    SyntaxFactory.InvocationExpression(SyntaxFactory.IdentifierName("nameof")).AddArgumentListArguments(
-                        SyntaxFactory.Argument(SyntaxFactory.IdentifierName(Name))
-                        )
-                    ),
-                SyntaxFactory.InterpolatedStringText(SyntaxFactory.Token(SyntaxFactory.TriviaList(), SyntaxKind.InterpolatedStringTextToken, "\\\"", string.Empty, SyntaxFactory.TriviaList()))
-                );
-
-            //if (version == null)
-            //    throw new NotSupportedException("...");
-            //[else if ...]
-            yield return SyntaxFactory.IfStatement(
-                SyntaxFactory.BinaryExpression(SyntaxKind.EqualsExpression, versionIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)),
-                SyntaxFactory.ThrowStatement(SyntaxFactory.ObjectCreationExpression(
-                    SyntaxFactory.IdentifierName("global::System.NotSupportedException")
-                    ).AddArgumentListArguments(SyntaxFactory.Argument(
-                        //SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal($"Must provide a version when reading type \"{Name}\""))))
-                        messageStringSyntax))
-                    ),
-                elseClause
-            );
-
-            foreach (var (min, max, name) in rangeList)
-            {
-                var testValue = min ?? (max!.Value - 1);
-                var body = BuildStatementsForVersion(testValue);
-
-                //void {MethodName}()
-                //{
-                //    ...
-                //}
-                yield return SyntaxFactory.LocalFunctionStatement(
-                    SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
-                    name
-                ).WithBody(SyntaxFactory.Block(body.ToArray()));
-            }
+            foreach (var localMethod in versionHelper.EnumerateVersionMethodDeclarations(BuildStatementsForVersion))
+                yield return localMethod;
 
             StatementSyntax CreateSeekStatement(long relativeOffset)
             {
@@ -345,17 +260,10 @@ namespace System.IO.Endian.SourceGenerator
                 var builder = ImmutableArray.CreateBuilder<StatementSyntax>();
                 var byteOrderAttribute = ByteOrderAttributes.FirstOrDefault(o => o.ValidForVersion(version));
 
-                //always read in order of offset so the final position is at the end of the highest property
-                var sorted = from p in Properties
-                             let offsetAttribute = p.OffsetAttributes.FirstOrDefault(o => o.ValidForVersion(version))
-                             where offsetAttribute != null
-                             orderby offsetAttribute.Offset
-                             select (p, offsetAttribute);
-
                 long? currentOffset = null;
-                foreach (var (property, offsetAttribute) in sorted)
+                foreach (var (property, offsetAttribute) in EnumeratePropertyOffsets(version))
                 {
-                    var readStatement = property.GetSetterStatementForVersion(version, (ByteOrder?)byteOrderAttribute?.ByteOrder);
+                    var readStatement = property.GetSetterStatementForVersion(version, byteOrderAttribute?.ByteOrder);
                     var commentTrivia = SyntaxFactory.TriviaList(
                         SyntaxFactory.Comment($"//{offsetAttribute.Offset} [0x{offsetAttribute.Offset:X2}]")
                     );
@@ -388,6 +296,47 @@ namespace System.IO.Endian.SourceGenerator
                         SyntaxFactory.Comment($"//{fixedSizeAttribute.Size} [0x{fixedSizeAttribute.Size:X2}] (FixedSize)")
                     )));
                 }
+
+                return builder.ToImmutableArray();
+            }
+        }
+
+        private IEnumerable<StatementSyntax> EnumerateWriteStatements(VersionRangeHelper versionHelper)
+        {
+            var baseAddressIdentifier = SyntaxFactory.IdentifierName("origin");
+            var readerIdentifier = SyntaxFactory.IdentifierName("reader");
+            var seekIdentifier = SyntaxFactory.IdentifierName("Seek");
+            var seekOriginBeginExpression = SyntaxFactory.MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                SyntaxFactory.IdentifierName("global::System.IO.SeekOrigin"),
+                SyntaxFactory.IdentifierName("Begin"));
+
+            if (!versionHelper.IsVersioned)
+            {
+                var body = BuildStatementsForVersion(null);
+                foreach (var statement in body)
+                    yield return statement;
+                yield break;
+            }
+
+            var versionIdentifier = SyntaxFactory.IdentifierName("version");
+            var versionProperty = Properties.FirstOrDefault(p => p.IsVersionProperty);
+
+            if (versionProperty != null)
+            {
+                //TODO: "version ??= this.VersionProperty;"
+            }
+
+            yield return versionHelper.VersionCheckStatement!;
+
+            foreach (var localMethod in versionHelper.EnumerateVersionMethodDeclarations(BuildStatementsForVersion))
+                yield return localMethod;
+
+            ImmutableArray<StatementSyntax> BuildStatementsForVersion(double? version)
+            {
+                var builder = ImmutableArray.CreateBuilder<StatementSyntax>();
+
+                //TODO
 
                 return builder.ToImmutableArray();
             }

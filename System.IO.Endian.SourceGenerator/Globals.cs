@@ -10,5 +10,6 @@ namespace System.IO.Endian.SourceGenerator
         public const string TargetInterface = $"{HomeNamespaceGlobal}.IStreamableObject";
         public const string BufferableInterface = $"{HomeNamespaceGlobal}.IBufferable";
         public const string InterfaceReadMethod = "PopulateFromStream";
+        public const string InterfaceWriteMethod = "WriteToStream";
     }
 }
