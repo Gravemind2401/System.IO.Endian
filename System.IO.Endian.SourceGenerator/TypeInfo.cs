@@ -304,7 +304,7 @@ namespace System.IO.Endian.SourceGenerator
         private IEnumerable<StatementSyntax> EnumerateWriteStatements(VersionRangeHelper versionHelper)
         {
             var baseAddressIdentifier = SyntaxFactory.IdentifierName("origin");
-            var readerIdentifier = SyntaxFactory.IdentifierName("reader");
+            var writerIdentifier = SyntaxFactory.IdentifierName("writer");
             var seekIdentifier = SyntaxFactory.IdentifierName("Seek");
             var seekOriginBeginExpression = SyntaxFactory.MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
@@ -332,11 +332,66 @@ namespace System.IO.Endian.SourceGenerator
             foreach (var localMethod in versionHelper.EnumerateVersionMethodDeclarations(BuildStatementsForVersion))
                 yield return localMethod;
 
+            StatementSyntax CreateSeekStatement(long relativeOffset)
+            {
+                ExpressionSyntax argumentExpression = relativeOffset == 0
+                    ? baseAddressIdentifier
+                    : SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, baseAddressIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(relativeOffset)));
+
+                //writer.Seek(baseAddress + {Offset}L, SeekOrigin.Begin);
+                return SyntaxFactory.ExpressionStatement(
+                    SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        writerIdentifier,
+                        seekIdentifier
+                    )).AddArgumentListArguments(
+                        SyntaxFactory.Argument(argumentExpression),
+                        SyntaxFactory.Argument(seekOriginBeginExpression)
+                    )
+                );
+            }
+
             ImmutableArray<StatementSyntax> BuildStatementsForVersion(double? version)
             {
                 var builder = ImmutableArray.CreateBuilder<StatementSyntax>();
+                var byteOrderAttribute = ByteOrderAttributes.FirstOrDefault(o => o.ValidForVersion(version));
 
-                //TODO
+                long? currentOffset = null;
+                foreach (var (property, offsetAttribute) in EnumeratePropertyOffsets(version))
+                {
+                    var writeStatement = property.GetWriteStatementForVersion(version, byteOrderAttribute?.ByteOrder);
+                    var commentTrivia = SyntaxFactory.TriviaList(
+                        SyntaxFactory.Comment($"//{offsetAttribute.Offset} [0x{offsetAttribute.Offset:X2}]")
+                    );
+
+                    if (offsetAttribute.Offset == currentOffset)
+                        writeStatement = writeStatement.WithLeadingTrivia(commentTrivia);
+                    else
+                        builder.Add(CreateSeekStatement(offsetAttribute.Offset).WithLeadingTrivia(commentTrivia));
+
+                    builder.Add(writeStatement);
+
+                    currentOffset = property.PropertySize.HasValue
+                        ? offsetAttribute.Offset + property.PropertySize.Value
+                        : null;
+                }
+
+                var fixedSizeAttribute = FixedSizeAttributes.FirstOrDefault(o => o.ValidForVersion(version));
+                if (fixedSizeAttribute != null)
+                {
+                    //writer.Seek({FixedSize}, SeekOrigin.Begin);
+                    builder.Add(SyntaxFactory.ExpressionStatement(
+                        SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            writerIdentifier,
+                            seekIdentifier
+                        )).AddArgumentListArguments(SyntaxFactory.Argument(
+                            SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, baseAddressIdentifier, SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(fixedSizeAttribute.Size)))
+                        ), SyntaxFactory.Argument(seekOriginBeginExpression)
+                    )).WithLeadingTrivia(SyntaxFactory.TriviaList(
+                        SyntaxFactory.Comment($"//{fixedSizeAttribute.Size} [0x{fixedSizeAttribute.Size:X2}] (FixedSize)")
+                    )));
+                }
 
                 return builder.ToImmutableArray();
             }

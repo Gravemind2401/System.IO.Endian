@@ -529,5 +529,124 @@ namespace System.IO.Endian.SourceGenerator
 
             return readExpression;
         }
+
+        public StatementSyntax GetWriteStatementForVersion(double? version, ByteOrder? byteOrder)
+        {
+            var writerIdentifier = SyntaxFactory.IdentifierName("writer");
+
+            var byteOrderAttribute = ByteOrderAttributes.FirstOrDefault(o => o.ValidForVersion(version));
+            if (byteOrderAttribute != null)
+                byteOrder = byteOrderAttribute.ByteOrder;
+
+            //"version" or "this.{Property}"
+            var valueExpresssion = IsVersionProperty
+                ? (ExpressionSyntax)SyntaxFactory.IdentifierName("version")
+                : SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, SyntaxFactory.IdentifierName("this"), SyntaxFactory.IdentifierName(Symbol.Name));
+
+            var (storeType, propertyKind) = (UnderlyingType, PropertyKind);
+            if (storeType == null)
+            {
+                var storeTypeAttribute = StoreTypeAttributes.FirstOrDefault(o => o.ValidForVersion(version));
+                storeType = storeTypeAttribute?.StoreType ?? Symbol.Type;
+                propertyKind = GetPropertyKind(storeType, out storeType, out _);
+            }
+
+            var propertyType = Symbol.Type;
+            var isNullable = IsVersionProperty;
+            if (propertyType.ContainingNamespace.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System" && propertyType.Name == "Nullable")
+            {
+                propertyType = ((INamedTypeSymbol)propertyType).TypeArguments[0];
+                isNullable = true;
+            }
+
+            if (isNullable)
+            {
+                //{valueExpression}.Value
+                valueExpresssion = SyntaxFactory.MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    valueExpresssion,
+                    SyntaxFactory.IdentifierName("Value")
+                );
+            }
+
+            //({StoreType}){valueExpression}
+            if (!SymbolEqualityComparer.Default.Equals(storeType, propertyType))
+                valueExpresssion = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(storeType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)), valueExpresssion);
+
+            var valueArgument = SyntaxFactory.Argument(valueExpresssion);
+
+            var byteOrderArgument = byteOrder.HasValue
+                ? SyntaxFactory.Argument(SyntaxFactory.MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        SyntaxFactory.IdentifierName("System.IO.Endian.ByteOrder"),
+                        SyntaxFactory.IdentifierName(byteOrder.Value.ToString())
+                    ))
+                : null;
+
+            string writeMethodName;
+            ArgumentSyntax[] writeArgs;
+
+            if (propertyKind == PropertyKind.String && !StringAttributes.IsLengthPrefixed)
+            {
+                if (StringAttributes.FixedLengthAttributeData != null)
+                {
+                    writeMethodName = "WriteStringFixedLength";
+                    writeArgs = new ArgumentSyntax[3];
+
+                    writeArgs[0] = valueArgument;
+
+                    writeArgs[1] = SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                        SyntaxKind.NumericLiteralExpression,
+                        SyntaxFactory.Literal(StringAttributes.FixedLengthAttributeData.Length)
+                    ));
+
+                    if (StringAttributes.FixedLengthAttributeData.Padding != ' ')
+                    {
+                        writeArgs[2] = SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                            SyntaxKind.CharacterLiteralExpression,
+                            SyntaxFactory.Literal(StringAttributes.FixedLengthAttributeData.Padding)
+                        ));
+                    }
+                }
+                else
+                {
+                    writeMethodName = "WriteStringNullTerminated";
+                    var length = StringAttributes.NullTerminatedAttributeData!.Length;
+                    writeArgs = new ArgumentSyntax[length.HasValue ? 2 : 1];
+                    writeArgs[0] = valueArgument;
+                    if (length.HasValue)
+                    {
+                        writeArgs[1] = SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                            SyntaxKind.NumericLiteralExpression,
+                            SyntaxFactory.Literal(length.Value)
+                        ));
+                    }
+                }
+            }
+            else if (propertyKind is PropertyKind.Primitive or PropertyKind.String)
+            {
+                var typeName = storeType.ToFrameworkTypesDisplayString().TrimEnd('?');
+
+                writeMethodName = "Write";
+                writeArgs = new ArgumentSyntax[byteOrder.HasValue ? 2 : 1];
+                writeArgs[0] = valueArgument;
+                if (byteOrder.HasValue && typeName is not ("System.SByte" or "System.Byte"))
+                    writeArgs[1] = byteOrderArgument!;
+            }
+            else
+            {
+                //TODO
+                return SyntaxFactory.EmptyStatement();
+            }
+
+            //writer.{WriteMethod}({args})
+            return SyntaxFactory.ExpressionStatement(
+                SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    writerIdentifier,
+                    SyntaxFactory.IdentifierName(writeMethodName)
+                )).AddArgumentListArguments(writeArgs)
+            );
+        }
     }
 }

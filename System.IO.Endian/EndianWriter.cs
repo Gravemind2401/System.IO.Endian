@@ -419,17 +419,36 @@ namespace System.IO.Endian
             base.Write(encoding.GetBytes(value));
         }
 
-        /// <summary>
-        /// Writes a null-terminated string to the current stream using the current encoding of the <seealso cref="EndianWriter"/>.
-        /// </summary>
-        /// <param name="value">The string value to write.</param>
-        /// <exception cref="ArgumentNullException"/>
-        /// <exception cref="IOException"/>
-        /// <exception cref="ObjectDisposedException"/>
+        /// <inheritdoc cref="WriteStringNullTerminated(string, int)"/>
         public virtual void WriteStringNullTerminated(string value)
         {
             ArgumentNullException.ThrowIfNull(value);
             Write(encoding.GetBytes(value + '\0'));
+        }
+
+        /// <summary>
+        /// Writes a null-terminated string to the current stream using the current encoding of the <seealso cref="EndianWriter"/>.
+        /// </summary>
+        /// <param name="value">The string value to write.</param>
+        /// <param name="maxLength">
+        /// The maximum number of characters to write, excluding the null terminator.
+        /// <br/> If the value is equal to or greater than this number of characters then the terminator character will be omitted.
+        /// </param>
+        /// <exception cref="ArgumentNullException"/>
+        /// <exception cref="IOException"/>
+        /// <exception cref="ObjectDisposedException"/>
+        public virtual void WriteStringNullTerminated(string value, int maxLength)
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            Exceptions.ThrowIfNotZeroOrPositive(maxLength);
+
+            if (maxLength == 0)
+                return;
+
+            if (value.Length > maxLength)
+                value = value[..maxLength];
+
+            Write(encoding.GetBytes(value.Length == maxLength ? value : value + '\0'));
         }
 
         #endregion
