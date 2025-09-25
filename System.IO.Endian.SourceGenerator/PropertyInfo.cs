@@ -445,6 +445,7 @@ namespace System.IO.Endian.SourceGenerator
 
             string readMethodName;
             ArgumentSyntax[] readArgs;
+            ExpressionSyntax? readExpression = default;
 
             if (propertyKind == PropertyKind.String && !StringAttributes.IsLengthPrefixed)
             {
@@ -501,20 +502,30 @@ namespace System.IO.Endian.SourceGenerator
                 else
                 {
                     readMethodName = $"ReadObject<{typeName}>";
-                    readArgs = version.HasValue ? new ArgumentSyntax[1] : Array.Empty<ArgumentSyntax>();
-                    if (version.HasValue)
-                    {
-                        //TODO: this needs to use the version parameter (or call the overload with no version if the parameter is null)
-                        readArgs[0] = SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
-                            SyntaxKind.NumericLiteralExpression,
-                            SyntaxFactory.Literal(version.Value)
-                        ));
-                    }
+                    var versionParam = SyntaxFactory.IdentifierName("version");
+                    readArgs = [SyntaxFactory.Argument(SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, versionParam, SyntaxFactory.IdentifierName("Value")))];
+
+                    var readMethodCall = SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        readerIdentifier,
+                        SyntaxFactory.IdentifierName(readMethodName)
+                    ));
+
+                    //version.HasValue ? ReadObject<T>(version) : ReadObject<T>();
+                    readExpression = SyntaxFactory.ConditionalExpression(
+                        SyntaxFactory.MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            versionParam,
+                            SyntaxFactory.IdentifierName("HasValue")
+                        ),
+                        readMethodCall.AddArgumentListArguments(readArgs),
+                        readMethodCall
+                    );
                 }
             }
 
             //reader.{ReadMethod}({args})
-            ExpressionSyntax readExpression = SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
+            readExpression ??= SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     readerIdentifier,
                     SyntaxFactory.IdentifierName(readMethodName)
@@ -526,7 +537,12 @@ namespace System.IO.Endian.SourceGenerator
 
             //({PropertyType}){readExpression}
             if (!SymbolEqualityComparer.Default.Equals(storeType, propertyType))
+            {
+                //put the "condition ? true : false" in parentheses so the cast happens on the result instead of the condition
+                if (readExpression is ConditionalExpressionSyntax)
+                    readExpression = SyntaxFactory.ParenthesizedExpression(readExpression);
                 readExpression = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(propertyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)), readExpression);
+            }
 
             return readExpression;
         }
@@ -648,16 +664,28 @@ namespace System.IO.Endian.SourceGenerator
                 else
                 {
                     writeMethodName = $"WriteObject<{typeName}>";
-                    writeArgs = new ArgumentSyntax[version.HasValue ? 2 : 1];
-                    writeArgs[0] = valueArgument;
-                    if (version.HasValue)
-                    {
-                        //TODO: this needs to use the version parameter (or call the overload with no version if the parameter is null)
-                        writeArgs[1] = SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
-                            SyntaxKind.NumericLiteralExpression,
-                            SyntaxFactory.Literal(version.Value)
-                        ));
-                    }
+                    var versionParam = SyntaxFactory.IdentifierName("version");
+
+                    var writeMethodCall = SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        writerIdentifier,
+                        SyntaxFactory.IdentifierName(writeMethodName)
+                    ));
+
+                    //if (version.HasValue) { WriteObject<T>(obj, version); } else { WriteObject<T>(obj); }
+                    return SyntaxFactory.IfStatement(
+                        SyntaxFactory.MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            versionParam,
+                            SyntaxFactory.IdentifierName("HasValue")
+                        ),
+                        SyntaxFactory.ExpressionStatement(
+                            writeMethodCall.AddArgumentListArguments(valueArgument, SyntaxFactory.Argument(SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, versionParam, SyntaxFactory.IdentifierName("Value"))))
+                        ),
+                        SyntaxFactory.ElseClause(SyntaxFactory.ExpressionStatement(
+                            writeMethodCall.AddArgumentListArguments(valueArgument)
+                        ))
+                    );
                 }
             }
 
