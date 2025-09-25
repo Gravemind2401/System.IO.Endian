@@ -504,6 +504,7 @@ namespace System.IO.Endian.SourceGenerator
                     readArgs = version.HasValue ? new ArgumentSyntax[1] : Array.Empty<ArgumentSyntax>();
                     if (version.HasValue)
                     {
+                        //TODO: this needs to use the version parameter (or call the overload with no version if the parameter is null)
                         readArgs[0] = SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
                             SyntaxKind.NumericLiteralExpression,
                             SyntaxFactory.Literal(version.Value)
@@ -562,11 +563,11 @@ namespace System.IO.Endian.SourceGenerator
             if (isNullable)
             {
                 //{valueExpression}.Value
-                valueExpresssion = SyntaxFactory.MemberAccessExpression(
+                valueExpresssion = SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     valueExpresssion,
-                    SyntaxFactory.IdentifierName("Value")
-                );
+                    SyntaxFactory.IdentifierName("GetValueOrDefault")
+                ));
             }
 
             //({StoreType}){valueExpression}
@@ -635,8 +636,29 @@ namespace System.IO.Endian.SourceGenerator
             }
             else
             {
-                //TODO
-                return SyntaxFactory.EmptyStatement();
+                var typeName = storeType.ToFullyQualifiedGlobalDisplayString().TrimEnd('?');
+                if (propertyKind == PropertyKind.Bufferable)
+                {
+                    writeMethodName = $"WriteBufferable<{typeName}>";
+                    writeArgs = new ArgumentSyntax[byteOrder.HasValue ? 2 : 1];
+                    writeArgs[0] = valueArgument;
+                    if (byteOrder.HasValue)
+                        writeArgs[1] = byteOrderArgument!;
+                }
+                else
+                {
+                    writeMethodName = $"WriteObject<{typeName}>";
+                    writeArgs = new ArgumentSyntax[version.HasValue ? 2 : 1];
+                    writeArgs[0] = valueArgument;
+                    if (version.HasValue)
+                    {
+                        //TODO: this needs to use the version parameter (or call the overload with no version if the parameter is null)
+                        writeArgs[1] = SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                            SyntaxKind.NumericLiteralExpression,
+                            SyntaxFactory.Literal(version.Value)
+                        ));
+                    }
+                }
             }
 
             //writer.{WriteMethod}({args})
