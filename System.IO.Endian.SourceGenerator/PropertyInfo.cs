@@ -365,7 +365,7 @@ namespace System.IO.Endian.SourceGenerator
             if (typeSymbol.TypeKind == TypeKind.Enum)
                 underlyingType = typeSymbol = ((INamedTypeSymbol)typeSymbol).EnumUnderlyingType!;
 
-            var ns = typeSymbol.ContainingNamespace?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var ns = typeSymbol.ContainingNamespace?.ToFullyQualifiedGlobalDisplayString();
             if (ns == "global::System")
             {
                 if (typeSymbol.Name == "String")
@@ -399,10 +399,9 @@ namespace System.IO.Endian.SourceGenerator
                 }
             }
 
-            if (typeSymbol.Interfaces.Any(t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).StartsWith(BufferableInterface)))
-                return PropertyKind.Bufferable;
-
-            return PropertyKind.Dynamic;
+            return typeSymbol.Interfaces.Any(t => t.ToFullyQualifiedGlobalDisplayString().StartsWith(BufferableInterface))
+                ? PropertyKind.Bufferable
+                : PropertyKind.Dynamic;
         }
 
         public StatementSyntax GetSetterStatementForVersion(double? version, ByteOrder? byteOrder)
@@ -532,7 +531,7 @@ namespace System.IO.Endian.SourceGenerator
             )).AddArgumentListArguments(readArgs);
 
             var propertyType = Symbol.Type;
-            if (propertyType.ContainingNamespace.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System" && propertyType.Name == "Nullable")
+            if (propertyType.IsNullableStruct())
                 propertyType = ((INamedTypeSymbol)propertyType).TypeArguments[0];
 
             //({PropertyType}){readExpression}
@@ -541,7 +540,7 @@ namespace System.IO.Endian.SourceGenerator
                 //put the "condition ? true : false" in parentheses so the cast happens on the result instead of the condition
                 if (readExpression is ConditionalExpressionSyntax)
                     readExpression = SyntaxFactory.ParenthesizedExpression(readExpression);
-                readExpression = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(propertyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)), readExpression);
+                readExpression = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(propertyType.ToFullyQualifiedGlobalDisplayString()), readExpression);
             }
 
             return readExpression;
@@ -557,7 +556,7 @@ namespace System.IO.Endian.SourceGenerator
 
             var propertyType = Symbol.Type;
             var isNullable = IsVersionProperty;
-            if (propertyType.ContainingNamespace.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System" && propertyType.Name == "Nullable")
+            if (propertyType.IsNullableStruct())
             {
                 propertyType = ((INamedTypeSymbol)propertyType).TypeArguments[0];
                 isNullable = true;
@@ -572,8 +571,8 @@ namespace System.IO.Endian.SourceGenerator
                 valueExpresssion = SyntaxFactory.IdentifierName("version");
 
                 //({propertyType})version
-                if (Symbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) is not ("double" or "double?"))
-                    valueExpresssion = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(propertyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)), valueExpresssion);
+                if (Symbol.Type.ToFullyQualifiedGlobalDisplayString() is not ("double" or "double?"))
+                    valueExpresssion = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(propertyType.ToFullyQualifiedGlobalDisplayString()), valueExpresssion);
             }
             else
             {
@@ -601,7 +600,7 @@ namespace System.IO.Endian.SourceGenerator
 
             //({storeType}){valueExpression}
             if (!SymbolEqualityComparer.Default.Equals(storeType, propertyType))
-                valueExpresssion = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(storeType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)), valueExpresssion);
+                valueExpresssion = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName(storeType.ToFullyQualifiedGlobalDisplayString()), valueExpresssion);
 
             var valueArgument = SyntaxFactory.Argument(valueExpresssion);
 

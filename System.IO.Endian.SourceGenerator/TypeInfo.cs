@@ -22,7 +22,7 @@ namespace System.IO.Endian.SourceGenerator
 
             var typeSymbol = (ITypeSymbol)context.TargetSymbol;
 
-            if (typeSymbol.AllInterfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == TargetInterface))
+            if (typeSymbol.AllInterfaces.Any(i => i.ToFullyQualifiedGlobalDisplayString() == TargetInterface))
             {
                 diagnostics = [DiagnosticInfo.Create(DuplicateInterfaceForStreamableObjectAttribute, typeSymbol, typeSymbol.Name)];
                 return null;
@@ -221,7 +221,7 @@ namespace System.IO.Endian.SourceGenerator
                 yield return CreateSeekStatement(offset).WithLeadingTrivia(commentTrivia);
 
                 var readExpression = versionProperty.GetReadExpressionForVersion(null, byteOrder);
-                if (versionProperty.Symbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) is not ("double" or "double?"))
+                if (versionProperty.Symbol.Type.ToFullyQualifiedGlobalDisplayString() is not ("double" or "double?"))
                     readExpression = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName("double"), readExpression);
 
                 yield return SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(
@@ -332,7 +332,7 @@ namespace System.IO.Endian.SourceGenerator
                 );
 
                 //(double)this.{versionProperty}
-                if (versionProperty.Symbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) is not ("double" or "double?"))
+                if (versionProperty.Symbol.Type.ToFullyQualifiedGlobalDisplayString() is not ("double" or "double?"))
                     versionPropExpression = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName("double"), versionPropExpression);
 
                 //version ??= {versionPropExpression};

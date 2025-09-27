@@ -42,9 +42,14 @@ namespace System.IO.Endian.SourceGenerator
         /// Same as using <see cref="SymbolDisplayFormat.FullyQualifiedFormat"/>, except:
         /// <list type="bullet">
         /// <item>The global namespace prefix will not be included</item>
-        /// <item>Predefined system types will use the full frameowkr type names like "System.Int32" instead of "int"</item>
+        /// <item>Predefined system types will use the full framework type names like "System.Int32" instead of "int"</item>
         /// </list>
         /// </summary>
         public static string ToFrameworkTypesDisplayString(this ISymbol symbol) => symbol.ToDisplayString(FullyQualifiedFrameworkTypesDisplayFormat);
+
+        /// <summary>
+        /// Returns <see langword="true"/> if the type symbol refers to <see cref="System.Nullable{T}"/>.
+        /// </summary>
+        public static bool IsNullableStruct(this ITypeSymbol typeSymbol) => typeSymbol.ContainingNamespace.ToFullyQualifiedGlobalDisplayString() == "global::System" && typeSymbol.Name == "Nullable";
     }
 }
