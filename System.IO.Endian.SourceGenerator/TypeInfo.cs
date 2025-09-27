@@ -324,7 +324,23 @@ namespace System.IO.Endian.SourceGenerator
 
             if (versionProperty != null)
             {
-                //TODO: "version ??= this.VersionProperty;"
+                //this.{versionProperty}
+                ExpressionSyntax versionPropExpression = SyntaxFactory.MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    SyntaxFactory.IdentifierName("this"),
+                    SyntaxFactory.IdentifierName(versionProperty.Symbol.Name)
+                );
+
+                //(double)this.{versionProperty}
+                if (versionProperty.Symbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) is not ("double" or "double?"))
+                    versionPropExpression = SyntaxFactory.CastExpression(SyntaxFactory.IdentifierName("double"), versionPropExpression);
+
+                //version ??= {versionPropExpression};
+                yield return SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(
+                    SyntaxKind.CoalesceAssignmentExpression,
+                    versionIdentifier,
+                    versionPropExpression
+                ));
             }
 
             yield return versionHelper.VersionCheckStatement!;
